@@ -129,7 +129,9 @@ cd Supply-Chain-Blockchain
 Install root dependencies (for Hardhat):
 
 ```bash
+cd backend
 npm install
+cd ..
 ```
 
 Install client dependencies:
