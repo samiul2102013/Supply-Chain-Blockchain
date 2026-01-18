@@ -12,7 +12,7 @@
 [![Solidity](https://img.shields.io/badge/Solidity-363636?logo=solidity&logoColor=white)](https://soliditylang.org/)
 [![Hardhat](https://img.shields.io/badge/Hardhat-FFF1E2?logo=hardhat&logoColor=black)](https://hardhat.org/)
 
-[⭐ Star](https://github.com/faizack619/Supply-Chain-Blockchain) • [🍴 Fork](https://github.com/faizack619/Supply-Chain-Blockchain/fork) • [🐛 Report Bug](https://github.com/faizack619/Supply-Chain-Blockchain/issues) • [💡 Request Feature](https://github.com/faizack619/Supply-Chain-Blockchain/issues)
+[⭐ Star](https://github.com/samiul2102013/Supply-Chain-Blockchain) • [🍴 Fork](https://github.com/samiul2102013/Supply-Chain-Blockchain/fork) • [🐛 Report Bug](https://github.com/samiul2102013/Supply-Chain-Blockchain/issues) • [💡 Request Feature](https://github.com/samiul2102013/Supply-Chain-Blockchain/issues)
 
 </div>
 
@@ -121,67 +121,50 @@ Before you begin, ensure you have the following installed:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/faizack619/Supply-Chain-Blockchain.git
+git clone https://github.com/samiul2102013/Supply-Chain-Blockchain.git
 cd Supply-Chain-Blockchain
 ```
 
 ### Step 2: Install Dependencies
 
-Install root dependencies (for Hardhat):
+Install backend dependencies (Hardhat & Solidity):
 
 ```bash
 cd backend
 npm install
-cd ..
 ```
 
-Install client dependencies:
+Install frontend dependencies (Next.js):
 
 ```bash
-cd client
+cd ../client
 npm install
-cd ..
 ```
 
 ### Step 3: Configure Ganache
 
-1. Open Ganache and create a new workspace
-2. Note the RPC Server URL (usually `http://127.0.0.1:7545` or `http://127.0.0.1:8545`)
-3. Copy the Chain ID (usually `1337` or `5777`)
+1. Open Ganache and create a new workspace (or use Quickstart)
+2. Note the RPC Server URL (default: `http://127.0.0.1:7545`)
+3. Check the Chain ID in Settings → Server (default: `1337` or `5777`)
 
-### Step 4: Configure Hardhat
+### Step 4: Deploy Smart Contracts
 
-Update `hardhat.config.ts` with your Ganache network settings:
-
-```typescript
-networks: {
-  ganache: {
-    url: "http://127.0.0.1:7545", // Your Ganache RPC URL
-    chainId: 1337, // Your Ganache Chain ID
-    accounts: {
-      mnemonic: "your ganache mnemonic" // Optional: if using mnemonic
-    }
-  }
-}
-```
-
-### Step 5: Deploy Smart Contracts
-
-Compile the smart contracts:
+From the `backend/` directory:
 
 ```bash
-npx hardhat compile
+# Compile the smart contracts
+npm run compile
+
+# Deploy to Ganache (chainId 1337)
+npm run deploy:ganache
+
+# Or for Ganache with chainId 5777
+npm run deploy:ganache5777
 ```
 
-Deploy to Ganache:
+The deployment script automatically updates `client/src/deployments.json` with the contract address.
 
-```bash
-npx hardhat run scripts/deploy.ts --network ganache
-```
-
-The deployment script will automatically update `client/src/deployments.json` with the contract address.
-
-### Step 6: Configure MetaMask
+### Step 5: Configure MetaMask
 
 1. Open MetaMask and click the network dropdown
 2. Select "Add Network" → "Add a network manually"
@@ -199,28 +182,47 @@ The deployment script will automatically update `client/src/deployments.json` wi
 
 ## 🚀 Running the Project
 
-### Start Ganache
-
-1. Open Ganache application
-2. Create or open a workspace
-3. Ensure the server is running
-
-### Deploy Contracts (if not already deployed)
+### Quick Start
 
 ```bash
-npx hardhat run scripts/deploy.ts --network ganache
-```
+# Terminal 1: Start Ganache
+# Open Ganache application and start a workspace
 
-### Start the Frontend
+# Terminal 2: Deploy contracts (from backend/)
+cd backend
+npm run deploy:ganache
 
-```bash
+# Terminal 3: Start frontend (from client/)
 cd client
 npm run dev
 ```
 
-The application will be available at [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Build for Production
+### Available Scripts
+
+#### Backend (`backend/` directory)
+
+| Command | Description |
+|---------|-------------|
+| `npm run compile` | Compile smart contracts |
+| `npm run deploy:ganache` | Deploy to Ganache (chainId 1337) |
+| `npm run deploy:ganache5777` | Deploy to Ganache (chainId 5777) |
+| `npm run deploy:local` | Deploy to Hardhat local node |
+| `npm run node` | Start Hardhat local node |
+| `npm run test` | Run contract tests |
+| `npm run clean` | Clean build artifacts |
+
+#### Frontend (`client/` directory)
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+### Production Build
 
 ```bash
 cd client
@@ -230,32 +232,43 @@ npm start
 
 ## 📖 Usage Guide
 
-### 1. Register Roles
+### 1. Connect Wallet
 
-- Navigate to "Register Roles" page
+- Open the application at [http://localhost:3000](http://localhost:3000)
+- Click "Connect Wallet" to connect MetaMask
+- Ensure MetaMask is connected to Ganache network
+- The first Ganache account (index 0) is the contract owner
+
+### 2. Register Roles (Owner Only)
+
+- Navigate to **"Register Roles"** page
 - Only the contract owner can register new roles
-- Add participants: Raw Material Suppliers, Manufacturers, Distributors, and Retailers
+- Add participants for each role:
+  - **Raw Material Suppliers (RMS)**
+  - **Manufacturers (MAN)**
+  - **Distributors (DIS)**
+  - **Retailers (RET)**
 - Each role requires: Ethereum address, name, and location
 
-### 2. Order Materials
+### 3. Order Products (Owner Only)
 
-- Go to "Order Materials" page
+- Go to **"Order Products"** page
 - Only the contract owner can create orders
-- Enter product details: ID, name, and description
-- Ensure at least one participant of each role is registered
+- Enter product details: name and description
+- **Important**: At least one participant of each role must be registered first
 
-### 3. Manage Supply Chain Flow
+### 4. Manage Supply Chain Flow
 
-- Access "Supply Chain Flow" page
-- Each role can perform their specific action:
+- Access **"Supply Chain Flow"** page
+- Each role performs their specific action using their registered address:
   - **Raw Material Supplier**: Supply raw materials
   - **Manufacturer**: Manufacture products
   - **Distributor**: Distribute products
   - **Retailer**: Retail and mark as sold
 
-### 4. Track Products
+### 5. Track Products
 
-- Visit "Track Materials" page
+- Visit **"Track Products"** page
 - Enter a product ID to view its complete journey
 - View detailed information about each stage
 - Generate QR codes for product verification
@@ -284,11 +297,49 @@ The `SupplyChain.sol` smart contract implements a comprehensive supply chain man
 ### Key Functions
 
 - `addRMS()`, `addManufacturer()`, `addDistributor()`, `addRetailer()`: Register participants
-- `addMedicine()`: Create new product orders
+- `addProduct()`: Create new product orders
 - `RMSsupply()`, `Manufacturing()`, `Distribute()`, `Retail()`, `sold()`: Progress products through stages
 - `showStage()`: Get current stage of a product
 
-![Smart Contract Flow](https://raw.githubusercontent.com/faizack619/Supply-Chain-Gode-Blockchain/master/client/public/Supply%20Chain%20Design%20(1).png)
+## 🔧 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| MetaMask not connecting | Ensure Ganache is running and MetaMask is on the correct network |
+| Transaction fails | Check you're using the correct account for the action (owner vs role) |
+| Contract not found | Re-deploy contracts with `npm run deploy:ganache` |
+| Wrong network error | Switch MetaMask to Ganache network (chainId 1337 or 5777) |
+| "No roles registered" | Register at least one of each role before adding products |
+
+## 📁 Project Structure
+
+```
+Supply-Chain-Blockchain/
+├── backend/                    # Hardhat/Solidity backend
+│   ├── contracts/              # Smart contracts
+│   │   └── SupplyChain.sol     # Main supply chain contract
+│   ├── scripts/                # Deployment scripts
+│   ├── test/                   # Contract tests
+│   ├── hardhat.config.ts       # Hardhat configuration
+│   └── package.json
+│
+├── client/                     # Next.js frontend
+│   ├── src/
+│   │   ├── app/                # Next.js App Router pages
+│   │   │   ├── page.tsx        # Home page
+│   │   │   ├── roles/          # Role management
+│   │   │   ├── addmed/         # Add products
+│   │   │   ├── supply/         # Supply chain flow
+│   │   │   └── track/          # Product tracking
+│   │   ├── lib/                # Utilities
+│   │   │   ├── web3.ts         # Web3 connection
+│   │   │   └── contracts.ts    # Contract imports
+│   │   ├── artifacts/          # Compiled contract ABIs
+│   │   └── deployments.json    # Deployed contract addresses
+│   └── package.json
+│
+└── README.md
+```
 
 ## 🤝 Contributing
 
