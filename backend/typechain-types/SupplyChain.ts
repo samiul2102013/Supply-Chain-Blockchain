@@ -28,20 +28,20 @@ export interface SupplyChainInterface extends Interface {
       | "Distribute"
       | "MAN"
       | "Manufacturing"
-      | "MedicineStock"
       | "Owner"
+      | "ProductStock"
       | "RET"
       | "RMS"
       | "RMSsupply"
       | "Retail"
       | "addDistributor"
       | "addManufacturer"
-      | "addMedicine"
+      | "addProduct"
       | "addRMS"
       | "addRetailer"
       | "disCtr"
       | "manCtr"
-      | "medicineCtr"
+      | "productCtr"
       | "retCtr"
       | "rmsCtr"
       | "showStage"
@@ -58,11 +58,11 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "Manufacturing",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "Owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "MedicineStock",
+    functionFragment: "ProductStock",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "Owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "RET", values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: "RMS", values: [BigNumberish]): string;
   encodeFunctionData(
@@ -82,7 +82,7 @@ export interface SupplyChainInterface extends Interface {
     values: [AddressLike, string, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "addMedicine",
+    functionFragment: "addProduct",
     values: [string, string]
   ): string;
   encodeFunctionData(
@@ -96,7 +96,7 @@ export interface SupplyChainInterface extends Interface {
   encodeFunctionData(functionFragment: "disCtr", values?: undefined): string;
   encodeFunctionData(functionFragment: "manCtr", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "medicineCtr",
+    functionFragment: "productCtr",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "retCtr", values?: undefined): string;
@@ -114,11 +114,11 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "Manufacturing",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "Owner", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "MedicineStock",
+    functionFragment: "ProductStock",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "Owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "RET", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "RMS", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "RMSsupply", data: BytesLike): Result;
@@ -131,10 +131,7 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "addManufacturer",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "addMedicine",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "addProduct", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "addRMS", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "addRetailer",
@@ -142,10 +139,7 @@ export interface SupplyChainInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "disCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "manCtr", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "medicineCtr",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "productCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "retCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rmsCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "showStage", data: BytesLike): Result;
@@ -209,7 +203,7 @@ export interface SupplyChain extends BaseContract {
   >;
 
   Distribute: TypedContractMethod<
-    [_medicineID: BigNumberish],
+    [_productID: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -228,12 +222,14 @@ export interface SupplyChain extends BaseContract {
   >;
 
   Manufacturing: TypedContractMethod<
-    [_medicineID: BigNumberish],
+    [_productID: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  MedicineStock: TypedContractMethod<
+  Owner: TypedContractMethod<[], [string], "view">;
+
+  ProductStock: TypedContractMethod<
     [arg0: BigNumberish],
     [
       [bigint, string, string, bigint, bigint, bigint, bigint, bigint] & {
@@ -249,8 +245,6 @@ export interface SupplyChain extends BaseContract {
     ],
     "view"
   >;
-
-  Owner: TypedContractMethod<[], [string], "view">;
 
   RET: TypedContractMethod<
     [arg0: BigNumberish],
@@ -279,16 +273,12 @@ export interface SupplyChain extends BaseContract {
   >;
 
   RMSsupply: TypedContractMethod<
-    [_medicineID: BigNumberish],
+    [_productID: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  Retail: TypedContractMethod<
-    [_medicineID: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
+  Retail: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
 
   addDistributor: TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
@@ -302,7 +292,7 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
 
-  addMedicine: TypedContractMethod<
+  addProduct: TypedContractMethod<
     [_name: string, _description: string],
     [void],
     "nonpayable"
@@ -324,15 +314,15 @@ export interface SupplyChain extends BaseContract {
 
   manCtr: TypedContractMethod<[], [bigint], "view">;
 
-  medicineCtr: TypedContractMethod<[], [bigint], "view">;
+  productCtr: TypedContractMethod<[], [bigint], "view">;
 
   retCtr: TypedContractMethod<[], [bigint], "view">;
 
   rmsCtr: TypedContractMethod<[], [bigint], "view">;
 
-  showStage: TypedContractMethod<[_medicineID: BigNumberish], [string], "view">;
+  showStage: TypedContractMethod<[_productID: BigNumberish], [string], "view">;
 
-  sold: TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  sold: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -354,7 +344,7 @@ export interface SupplyChain extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "Distribute"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "MAN"
   ): TypedContractMethod<
@@ -371,9 +361,12 @@ export interface SupplyChain extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "Manufacturing"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "MedicineStock"
+    nameOrSignature: "Owner"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "ProductStock"
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
@@ -390,9 +383,6 @@ export interface SupplyChain extends BaseContract {
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "Owner"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "RET"
   ): TypedContractMethod<
@@ -423,10 +413,10 @@ export interface SupplyChain extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "RMSsupply"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "Retail"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "addDistributor"
   ): TypedContractMethod<
@@ -442,7 +432,7 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "addMedicine"
+    nameOrSignature: "addProduct"
   ): TypedContractMethod<
     [_name: string, _description: string],
     [void],
@@ -469,7 +459,7 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "manCtr"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "medicineCtr"
+    nameOrSignature: "productCtr"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "retCtr"
@@ -479,10 +469,10 @@ export interface SupplyChain extends BaseContract {
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "showStage"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [string], "view">;
+  ): TypedContractMethod<[_productID: BigNumberish], [string], "view">;
   getFunction(
     nameOrSignature: "sold"
-  ): TypedContractMethod<[_medicineID: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
 
   filters: {};
 }

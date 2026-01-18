@@ -105,7 +105,7 @@ The ABI (`.abi` property) is passed to `web3.eth.Contract` constructor. **Do not
 ## Common Pitfalls
 
 1. **Ganache Not Running**: `getContract()` will timeout. Check Ganache is on correct port (7545/8545) matching hardhat.config.ts
-2. **Wrong MetaMask Network**: Error lists available networks from deployments.json. Use NetworkHelper component or manually switch
+2. **Wrong MetaMask Network**: Error lists available networks from deployments.json. Manually switch MetaMask to the correct network (chainId 1337 for Ganache)
 3. **Insufficient Roles**: Contract requires at least 1 of each role before `addProduct()`. Check counters: `rmsCtr`, `manCtr`, etc.
 4. **Stage Progression**: Cannot skip stages. If Manufacturing fails, check product is in RawMaterialSupply stage first
 5. **Owner-Only Actions**: Many functions have `onlyByOwner` modifier. Non-owner calls will revert

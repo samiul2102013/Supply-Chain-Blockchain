@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import NetworkHelper from '@/components/NetworkHelper'
 
 export const metadata: Metadata = {
   title: 'Supply Chain Manager',
@@ -15,7 +14,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <NetworkHelper />
         {children}
       </body>
     </html>
