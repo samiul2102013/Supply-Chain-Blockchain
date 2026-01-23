@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  images: {
+    unoptimized: true, // For static export compatibility
+  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

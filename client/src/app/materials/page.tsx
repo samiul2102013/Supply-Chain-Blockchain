@@ -9,29 +9,31 @@ interface Material {
   id: string
   name: string
   category: string
-  quantity: string
+  totalQuantity: string
+  availableQuantity: string
   unit: string
   pricePerUnit: string
-  supplierId: string
-  addedTimestamp: string
+  vendorId: string
+  receivedAt: string
   isActive: boolean
 }
 
-interface MaterialTransaction {
+interface Vendor {
+  id: string
+  addr: string
+  name: string
+  location: string
+  isActive: boolean
+}
+
+interface SupplyHistory {
   id: string
   materialId: string
   vendorId: string
-  productId: string
   quantity: string
-  timestamp: string
-  transactionType: string
-}
-
-interface Vendor {
-  addr: string
-  id: string
-  name: string
-  place: string
+  pricePerUnit: string
+  totalAmount: string
+  suppliedAt: string
 }
 
 export default function MaterialsPage() {
@@ -40,22 +42,48 @@ export default function MaterialsPage() {
   const [loading, setLoading] = useState(true)
   const [supplyChain, setSupplyChain] = useState<any>(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [isVendor, setIsVendor] = useState(false)
+  const [vendorId, setVendorId] = useState<string>('0')
+  const [vendorInfo, setVendorInfo] = useState<Vendor | null>(null)
+  
   const [materials, setMaterials] = useState<Material[]>([])
-  const [transactions, setTransactions] = useState<MaterialTransaction[]>([])
   const [vendors, setVendors] = useState<Vendor[]>([])
-  const [activeTab, setActiveTab] = useState<'inventory' | 'add' | 'transactions'>('inventory')
+  const [supplyHistory, setSupplyHistory] = useState<SupplyHistory[]>([])
+  const [activeTab, setActiveTab] = useState<'inventory' | 'add' | 'restock' | 'history'>('inventory')
 
-  const [newMaterial, setNewMaterial] = useState({
+  // Vendor's own material form (no vendor selection needed)
+  const [vendorMaterialForm, setVendorMaterialForm] = useState({
     name: '',
     category: '',
     quantity: '',
-    unit: 'kg',
-    pricePerUnit: '',
-    supplierId: '',
+    unit: '',
+    pricePerUnit: ''
   })
 
-  const categories = ['Chemical', 'Metal', 'Plastic', 'Fabric', 'Electronic', 'Organic', 'Other']
-  const units = ['kg', 'g', 'liters', 'ml', 'units', 'meters', 'pieces']
+  // Admin's material form (with vendor selection)
+  const [adminMaterialForm, setAdminMaterialForm] = useState({
+    name: '',
+    category: '',
+    quantity: '',
+    unit: '',
+    pricePerUnit: '',
+    vendorId: ''
+  })
+
+  // Vendor restock form
+  const [vendorRestockForm, setVendorRestockForm] = useState({
+    materialId: '',
+    quantity: '',
+    pricePerUnit: ''
+  })
+
+  // Admin restock form
+  const [adminRestockForm, setAdminRestockForm] = useState({
+    materialId: '',
+    quantity: '',
+    vendorId: '',
+    pricePerUnit: ''
+  })
 
   useEffect(() => {
     loadWeb3()
@@ -70,284 +98,281 @@ export default function MaterialsPage() {
       setCurrentAccount(account)
 
       // Load vendors
-      const rmsCount = await contract.methods.rmsCtr().call()
-      const vendorList: Vendor[] = []
-      for (let i = 1; i <= parseInt(rmsCount); i++) {
-        const vendor = await contract.methods.RMS(i).call()
-        vendorList.push(vendor)
+      const vendorCount = await contract.methods.vendorCtr().call()
+      const vendorPromises = []
+      for (let i = 1; i <= parseInt(vendorCount); i++) {
+        vendorPromises.push(contract.methods.vendors(i).call())
       }
-      setVendors(vendorList)
+      const vendorData = await Promise.all(vendorPromises)
+      setVendors(vendorData)
+
+      // Check if current user is a vendor
+      const vId = await contract.methods.findVendor(account).call()
+      if (parseInt(vId) > 0) {
+        setIsVendor(true)
+        setVendorId(vId)
+        const vInfo = vendorData.find(v => v.id === vId)
+        if (vInfo) setVendorInfo(vInfo)
+      }
 
       // Load materials
       const materialCount = await contract.methods.materialCtr().call()
-      const materialList: Material[] = []
+      const materialPromises = []
       for (let i = 1; i <= parseInt(materialCount); i++) {
-        const material = await contract.methods.Materials(i).call()
-        materialList.push(material)
+        materialPromises.push(contract.methods.materials(i).call())
       }
-      setMaterials(materialList)
+      const materialData = await Promise.all(materialPromises)
+      setMaterials(materialData)
 
-      // Load transactions
-      const txCount = await contract.methods.transactionCtr().call()
-      const txList: MaterialTransaction[] = []
-      for (let i = 1; i <= parseInt(txCount); i++) {
-        const tx = await contract.methods.MaterialTransactions(i).call()
-        txList.push(tx)
+      // Load supply history
+      const historyCount = await contract.methods.supplyHistoryCtr().call()
+      const historyPromises = []
+      for (let i = 1; i <= parseInt(historyCount); i++) {
+        historyPromises.push(contract.methods.supplyHistory(i).call())
       }
-      setTransactions(txList.reverse()) // Show newest first
+      const historyData = await Promise.all(historyPromises)
+      setSupplyHistory(historyData)
 
       const ownerStatus = await checkIsOwner()
       setIsOwner(ownerStatus)
-
+      
       setLoading(false)
     } catch (err: any) {
-      console.error('Error loading blockchain data:', err)
+      console.error('Error:', err)
       alert(err?.message || 'Error loading data')
       setLoading(false)
     }
   }
 
-  const handleAddMaterial = async (e: React.FormEvent) => {
+  // Vendor adds their own material
+  const vendorAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      const priceInWei = newMaterial.pricePerUnit ? 
-        BigInt(parseFloat(newMaterial.pricePerUnit) * 1e18).toString() : '0'
-      
-      const receipt = await supplyChain.methods.addMaterial(
-        newMaterial.name,
-        newMaterial.category,
-        newMaterial.quantity,
-        newMaterial.unit,
-        priceInWei,
-        newMaterial.supplierId
-      ).send({ from: currentAccount })
+    if (!supplyChain || !isVendor) return
 
-      if (receipt) {
-        alert('Material added successfully!')
-        setNewMaterial({ name: '', category: '', quantity: '', unit: 'kg', pricePerUnit: '', supplierId: '' })
-        loadBlockchainData()
-        setActiveTab('inventory')
-      }
+    try {
+      await supplyChain.methods.vendorAddMaterial(
+        vendorMaterialForm.name,
+        vendorMaterialForm.category,
+        parseInt(vendorMaterialForm.quantity),
+        vendorMaterialForm.unit,
+        parseInt(vendorMaterialForm.pricePerUnit)
+      ).send({ from: currentAccount })
+      
+      setVendorMaterialForm({ name: '', category: '', quantity: '', unit: '', pricePerUnit: '' })
+      loadBlockchainData()
+      alert('Material added successfully!')
     } catch (err: any) {
-      console.error('Error:', err)
+      console.error(err)
       alert(err?.message || 'Error adding material')
     }
   }
 
-  const formatTimestamp = (timestamp: string) => {
+  // Vendor restocks their own material
+  const vendorRestock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !isVendor) return
+
+    try {
+      await supplyChain.methods.vendorRestockMaterial(
+        parseInt(vendorRestockForm.materialId),
+        parseInt(vendorRestockForm.quantity),
+        parseInt(vendorRestockForm.pricePerUnit)
+      ).send({ from: currentAccount })
+      
+      setVendorRestockForm({ materialId: '', quantity: '', pricePerUnit: '' })
+      loadBlockchainData()
+      alert('Material restocked successfully!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error restocking material')
+    }
+  }
+
+  // Admin adds material for any vendor
+  const adminAddMaterial = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !isOwner) return
+
+    try {
+      await supplyChain.methods.addMaterial(
+        adminMaterialForm.name,
+        adminMaterialForm.category,
+        parseInt(adminMaterialForm.quantity),
+        adminMaterialForm.unit,
+        parseInt(adminMaterialForm.pricePerUnit),
+        parseInt(adminMaterialForm.vendorId)
+      ).send({ from: currentAccount })
+      
+      setAdminMaterialForm({ name: '', category: '', quantity: '', unit: '', pricePerUnit: '', vendorId: '' })
+      loadBlockchainData()
+      alert('Material added successfully!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error adding material')
+    }
+  }
+
+  // Admin restocks material
+  const adminRestock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !isOwner) return
+
+    try {
+      await supplyChain.methods.restockMaterial(
+        parseInt(adminRestockForm.materialId),
+        parseInt(adminRestockForm.quantity),
+        parseInt(adminRestockForm.vendorId),
+        parseInt(adminRestockForm.pricePerUnit)
+      ).send({ from: currentAccount })
+      
+      setAdminRestockForm({ materialId: '', quantity: '', vendorId: '', pricePerUnit: '' })
+      loadBlockchainData()
+      alert('Material restocked successfully!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error restocking material')
+    }
+  }
+
+  const getVendorName = (vendorIdStr: string) => {
+    const vendor = vendors.find(v => v.id === vendorIdStr)
+    return vendor ? vendor.name : 'Unknown'
+  }
+
+  const getMaterialName = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId)
+    return material ? material.name : 'Unknown'
+  }
+
+  const formatDate = (timestamp: string) => {
     if (!timestamp || timestamp === '0') return 'N/A'
-    const date = new Date(parseInt(timestamp) * 1000)
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+    return new Date(parseInt(timestamp) * 1000).toLocaleString()
   }
 
-  const formatPrice = (priceWei: string) => {
-    if (!priceWei || priceWei === '0') return 'N/A'
-    return (parseFloat(priceWei) / 1e18).toFixed(4) + ' ETH'
-  }
-
-  const getVendorName = (vendorId: string) => {
-    const vendor = vendors.find(v => v.id === vendorId)
-    return vendor?.name || `Vendor #${vendorId}`
-  }
-
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      'Chemical': 'bg-red-100 text-red-700 border-red-200',
-      'Metal': 'bg-gray-100 text-gray-700 border-gray-200',
-      'Plastic': 'bg-blue-100 text-blue-700 border-blue-200',
-      'Fabric': 'bg-purple-100 text-purple-700 border-purple-200',
-      'Electronic': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      'Organic': 'bg-green-100 text-green-700 border-green-200',
-      'Other': 'bg-orange-100 text-orange-700 border-orange-200',
-    }
-    return colors[category] || colors['Other']
-  }
-
-  const getTxTypeStyle = (type: string) => {
-    switch (type) {
-      case 'RECEIVED':
-        return 'bg-green-100 text-green-700'
-      case 'USED':
-        return 'bg-blue-100 text-blue-700'
-      case 'RETURNED':
-        return 'bg-orange-100 text-orange-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
+  // Get materials owned by current vendor
+  const myMaterials = materials.filter(m => m.vendorId === vendorId)
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <h1 className="text-2xl font-bold text-gray-700">Loading Materials...</h1>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
+  const canAddMaterial = isOwner || isVendor
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100 p-5">
+    <div className="min-h-screen bg-gray-900 text-white py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Materials Tracking</h1>
-                <p className="text-gray-600 text-sm">Track raw materials with full traceability</p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              HOME
-            </button>
-          </div>
-          <div className="text-xs text-gray-500 font-mono">Account: {currentAccount}</div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">📦 Material Inventory</h1>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+          >
+            ← Back to Home
+          </button>
         </div>
 
-        {/* Stats Cards */}
+        {/* User Info */}
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <p className="text-gray-300">Connected: <span className="text-blue-400">{currentAccount}</span></p>
+          {isOwner && <span className="text-green-500 font-bold">(Admin)</span>}
+          {isVendor && vendorInfo && (
+            <div className="mt-2">
+              <span className="bg-cyan-600 px-3 py-1 rounded-full text-sm font-semibold">
+                Vendor: {vendorInfo.name}
+              </span>
+              <span className="text-gray-400 ml-2">({vendorInfo.location})</span>
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Materials</p>
-                <p className="text-3xl font-bold text-gray-800">{materials.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">📦</div>
-            </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Total Materials</p>
+            <p className="text-2xl font-bold">{materials.length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Active Vendors</p>
-                <p className="text-3xl font-bold text-gray-800">{vendors.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl">🏭</div>
-            </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">{isVendor ? 'My Materials' : 'Active Vendors'}</p>
+            <p className="text-2xl font-bold">{isVendor ? myMaterials.length : vendors.filter(v => v.isActive).length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Transactions</p>
-                <p className="text-3xl font-bold text-gray-800">{transactions.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl">📊</div>
-            </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Supply Transactions</p>
+            <p className="text-2xl font-bold">{supplyHistory.length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Categories</p>
-                <p className="text-3xl font-bold text-gray-800">
-                  {new Set(materials.map(m => m.category)).size}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">🏷️</div>
-            </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Low Stock Items</p>
+            <p className="text-2xl font-bold text-yellow-500">
+              {materials.filter(m => parseInt(m.availableQuantity) < 10).length}
+            </p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-xl p-2 mb-6">
-          <div className="flex space-x-2">
+        <div className="flex space-x-4 mb-6 overflow-x-auto">
+          {(['inventory', 'add', 'restock', 'history'] as const).map((tab) => (
             <button
-              onClick={() => setActiveTab('inventory')}
-              className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-                activeTab === 'inventory'
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:bg-gray-100'
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-lg font-semibold capitalize transition-colors whitespace-nowrap ${
+                activeTab === tab
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              📦 Material Inventory
+              {tab === 'add' ? 'Add Material' : tab === 'restock' ? 'Restock' : tab === 'history' ? 'Supply History' : 'Inventory'}
             </button>
-            {isOwner && (
-              <button
-                onClick={() => setActiveTab('add')}
-                className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-                  activeTab === 'add'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                ➕ Add Material
-              </button>
-            )}
-            <button
-              onClick={() => setActiveTab('transactions')}
-              className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-                activeTab === 'transactions'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              📜 Transaction History
-            </button>
-          </div>
+          ))}
         </div>
 
         {/* Inventory Tab */}
         {activeTab === 'inventory' && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            {materials.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="text-6xl mb-4">📦</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Materials in Inventory</h3>
-                <p className="text-gray-500">Add your first material to start tracking</p>
-              </div>
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {isVendor ? `My Materials (${myMaterials.length})` : `Material Inventory (${materials.length})`}
+            </h2>
+            {(isVendor ? myMaterials : materials).length === 0 ? (
+              <p className="text-gray-400">
+                {isVendor ? 'You have not added any materials yet.' : 'No materials in inventory yet.'}
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                    <tr>
-                      <th className="px-6 py-4 text-left">ID</th>
-                      <th className="px-6 py-4 text-left">Material</th>
-                      <th className="px-6 py-4 text-left">Category</th>
-                      <th className="px-6 py-4 text-left">Quantity</th>
-                      <th className="px-6 py-4 text-left">Price/Unit</th>
-                      <th className="px-6 py-4 text-left">Supplier</th>
-                      <th className="px-6 py-4 text-left">Added</th>
-                      <th className="px-6 py-4 text-left">Status</th>
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="px-4 py-2 text-left">ID</th>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Category</th>
+                      <th className="px-4 py-2 text-left">Available</th>
+                      <th className="px-4 py-2 text-left">Total</th>
+                      <th className="px-4 py-2 text-left">Unit</th>
+                      <th className="px-4 py-2 text-left">Price/Unit</th>
+                      {!isVendor && <th className="px-4 py-2 text-left">Vendor</th>}
+                      <th className="px-4 py-2 text-left">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {materials.map((material, index) => (
-                      <tr key={material.id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                        <td className="px-6 py-4 font-bold text-gray-800">#{material.id}</td>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-800">{material.name}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(material.category)}`}>
-                            {material.category}
+                    {(isVendor ? myMaterials : materials).map((m) => (
+                      <tr key={m.id} className="border-b border-gray-700">
+                        <td className="px-4 py-2">{m.id}</td>
+                        <td className="px-4 py-2 font-semibold">{m.name}</td>
+                        <td className="px-4 py-2">{m.category}</td>
+                        <td className="px-4 py-2">
+                          <span className={parseInt(m.availableQuantity) < 10 ? 'text-yellow-500' : 'text-green-500'}>
+                            {m.availableQuantity}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-lg text-gray-800">{material.quantity}</span>
-                          <span className="text-gray-500 ml-1">{material.unit}</span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">{formatPrice(material.pricePerUnit)}</td>
-                        <td className="px-6 py-4">
-                          <span className="text-blue-600 font-medium">{getVendorName(material.supplierId)}</span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{formatTimestamp(material.addedTimestamp)}</td>
-                        <td className="px-6 py-4">
-                          {material.isActive ? (
-                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">Active</span>
-                          ) : (
-                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">Inactive</span>
-                          )}
+                        <td className="px-4 py-2">{m.totalQuantity}</td>
+                        <td className="px-4 py-2">{m.unit}</td>
+                        <td className="px-4 py-2">${m.pricePerUnit}</td>
+                        {!isVendor && <td className="px-4 py-2">{getVendorName(m.vendorId)}</td>}
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-1 rounded text-xs ${m.isActive ? 'bg-green-600' : 'bg-red-600'}`}>
+                            {m.isActive ? 'Active' : 'Inactive'}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -359,171 +384,320 @@ export default function MaterialsPage() {
         )}
 
         {/* Add Material Tab */}
-        {activeTab === 'add' && isOwner && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <span className="mr-3">➕</span> Add New Material
+        {activeTab === 'add' && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {isVendor ? '🏭 Add Your Material' : isOwner ? '📦 Add Material (Admin)' : 'Add Material'}
             </h2>
             
-            {vendors.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">⚠️</div>
-                <p className="text-gray-600 mb-4">You need to register at least one vendor first</p>
-                <button
-                  onClick={() => router.push('/vendors')}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  Go to Vendor Management
-                </button>
+            {!canAddMaterial ? (
+              <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4">
+                <p className="text-yellow-300">
+                  ⚠️ Only registered vendors or admin can add materials.
+                </p>
               </div>
-            ) : (
-              <form onSubmit={handleAddMaterial} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Material Name *</label>
-                    <input
-                      type="text"
-                      value={newMaterial.name}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., Steel Plates"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                    <select
-                      value={newMaterial.category}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, category: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
-                    <input
-                      type="number"
-                      value={newMaterial.quantity}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, quantity: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      placeholder="100"
-                      min="1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Unit *</label>
-                    <select
-                      value={newMaterial.unit}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, unit: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      required
-                    >
-                      {units.map(unit => (
-                        <option key={unit} value={unit}>{unit}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Price per Unit (ETH)</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={newMaterial.pricePerUnit}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, pricePerUnit: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      placeholder="0.01"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Supplier *</label>
-                    <select
-                      value={newMaterial.supplierId}
-                      onChange={(e) => setNewMaterial({ ...newMaterial, supplierId: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
-                      required
-                    >
-                      <option value="">Select Supplier</option>
-                      {vendors.map(vendor => (
-                        <option key={vendor.id} value={vendor.id}>
-                          {vendor.name} (#{vendor.id})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            ) : isVendor ? (
+              // Vendor Form - No vendor selection needed
+              <form onSubmit={vendorAddMaterial} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Material Name"
+                  value={vendorMaterialForm.name}
+                  onChange={(e) => setVendorMaterialForm({...vendorMaterialForm, name: e.target.value})}
+                  className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Category"
+                  value={vendorMaterialForm.category}
+                  onChange={(e) => setVendorMaterialForm({...vendorMaterialForm, category: e.target.value})}
+                  className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Quantity"
+                  value={vendorMaterialForm.quantity}
+                  onChange={(e) => setVendorMaterialForm({...vendorMaterialForm, quantity: e.target.value})}
+                  className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                  min="1"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Unit (e.g., kg, liters, pieces)"
+                  value={vendorMaterialForm.unit}
+                  onChange={(e) => setVendorMaterialForm({...vendorMaterialForm, unit: e.target.value})}
+                  className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Price per Unit"
+                  value={vendorMaterialForm.pricePerUnit}
+                  onChange={(e) => setVendorMaterialForm({...vendorMaterialForm, pricePerUnit: e.target.value})}
+                  className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                  min="0"
+                  required
+                />
+                <div className="flex items-center text-gray-400">
+                  Will be added under: <span className="ml-2 text-cyan-400 font-semibold">{vendorInfo?.name}</span>
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg"
+                  className="bg-cyan-600 hover:bg-cyan-500 px-6 py-2 rounded-lg font-semibold md:col-span-2"
                 >
-                  Add Material to Inventory
+                  Add My Material
                 </button>
               </form>
-            )}
+            ) : isOwner ? (
+              // Admin Form - With vendor selection
+              <>
+                {vendors.length === 0 ? (
+                  <div className="text-yellow-400">
+                    ⚠️ Please add vendors first before adding materials.
+                    <button
+                      onClick={() => router.push('/roles')}
+                      className="ml-4 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg"
+                    >
+                      Go to Manage Participants
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={adminAddMaterial} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Material Name"
+                      value={adminMaterialForm.name}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, name: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Category"
+                      value={adminMaterialForm.category}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, category: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Quantity"
+                      value={adminMaterialForm.quantity}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, quantity: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      min="1"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Unit (e.g., kg, liters, pieces)"
+                      value={adminMaterialForm.unit}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, unit: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Price per Unit"
+                      value={adminMaterialForm.pricePerUnit}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, pricePerUnit: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      min="0"
+                      required
+                    />
+                    <select
+                      value={adminMaterialForm.vendorId}
+                      onChange={(e) => setAdminMaterialForm({...adminMaterialForm, vendorId: e.target.value})}
+                      className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                      required
+                    >
+                      <option value="">Select Vendor</option>
+                      {vendors.filter(v => v.isActive).map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name} ({v.location})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-semibold md:col-span-2"
+                    >
+                      Add Material to Inventory
+                    </button>
+                  </form>
+                )}
+              </>
+            ) : null}
           </div>
         )}
 
-        {/* Transactions Tab */}
-        {activeTab === 'transactions' && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800">Transaction History</h2>
-              <p className="text-gray-500 text-sm">Complete audit trail of all material movements</p>
-            </div>
-            {transactions.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="text-6xl mb-4">📜</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Transactions Yet</h3>
-                <p className="text-gray-500">Transactions will appear here when materials are added or used</p>
+        {/* Restock Tab */}
+        {activeTab === 'restock' && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {isVendor ? '📦 Restock My Materials' : 'Restock Material'}
+            </h2>
+            
+            {!canAddMaterial ? (
+              <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4">
+                <p className="text-yellow-300">
+                  ⚠️ Only registered vendors or admin can restock materials.
+                </p>
               </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {transactions.map((tx) => {
-                  const material = materials.find(m => m.id === tx.materialId)
-                  return (
-                    <div key={tx.id} className="p-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                            tx.transactionType === 'RECEIVED' ? 'bg-green-100' :
-                            tx.transactionType === 'USED' ? 'bg-blue-100' : 'bg-orange-100'
-                          }`}>
-                            {tx.transactionType === 'RECEIVED' ? '📥' :
-                             tx.transactionType === 'USED' ? '📤' : '↩️'}
-                          </div>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${getTxTypeStyle(tx.transactionType)}`}>
-                                {tx.transactionType}
-                              </span>
-                              <span className="font-semibold text-gray-800">
-                                {material?.name || `Material #${tx.materialId}`}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Quantity: <span className="font-medium">{tx.quantity}</span> | 
-                              Vendor: <span className="font-medium text-blue-600">{getVendorName(tx.vendorId)}</span>
-                              {tx.productId !== '0' && (
-                                <> | Product: <span className="font-medium text-purple-600">#{tx.productId}</span></>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-mono text-gray-500">TX #{tx.id}</p>
-                          <p className="text-xs text-gray-400">{formatTimestamp(tx.timestamp)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            ) : isVendor ? (
+              // Vendor Restock Form
+              myMaterials.length === 0 ? (
+                <p className="text-yellow-400">⚠️ You have no materials to restock. Add materials first.</p>
+              ) : (
+                <form onSubmit={vendorRestock} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <select
+                    value={vendorRestockForm.materialId}
+                    onChange={(e) => setVendorRestockForm({...vendorRestockForm, materialId: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    required
+                  >
+                    <option value="">Select Your Material</option>
+                    {myMaterials.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} (Available: {m.availableQuantity} {m.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Quantity to Add"
+                    value={vendorRestockForm.quantity}
+                    onChange={(e) => setVendorRestockForm({...vendorRestockForm, quantity: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="1"
+                    required
+                  />
+                  <input
+                    type="number"
+                    placeholder="Price per Unit"
+                    value={vendorRestockForm.pricePerUnit}
+                    onChange={(e) => setVendorRestockForm({...vendorRestockForm, pricePerUnit: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="0"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="bg-orange-600 hover:bg-orange-500 px-6 py-2 rounded-lg font-semibold md:col-span-3"
+                  >
+                    Restock Material
+                  </button>
+                </form>
+              )
+            ) : isOwner ? (
+              // Admin Restock Form
+              materials.length === 0 ? (
+                <p className="text-yellow-400">⚠️ No materials available to restock.</p>
+              ) : (
+                <form onSubmit={adminRestock} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <select
+                    value={adminRestockForm.materialId}
+                    onChange={(e) => setAdminRestockForm({...adminRestockForm, materialId: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    required
+                  >
+                    <option value="">Select Material</option>
+                    {materials.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} (Available: {m.availableQuantity} {m.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Quantity to Add"
+                    value={adminRestockForm.quantity}
+                    onChange={(e) => setAdminRestockForm({...adminRestockForm, quantity: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="1"
+                    required
+                  />
+                  <select
+                    value={adminRestockForm.vendorId}
+                    onChange={(e) => setAdminRestockForm({...adminRestockForm, vendorId: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    required
+                  >
+                    <option value="">Select Vendor</option>
+                    {vendors.filter(v => v.isActive).map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.location})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Price per Unit"
+                    value={adminRestockForm.pricePerUnit}
+                    onChange={(e) => setAdminRestockForm({...adminRestockForm, pricePerUnit: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="0"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="bg-orange-600 hover:bg-orange-500 px-6 py-2 rounded-lg font-semibold md:col-span-2"
+                  >
+                    Restock Material
+                  </button>
+                </form>
+              )
+            ) : null}
+          </div>
+        )}
+
+        {/* Supply History Tab */}
+        {activeTab === 'history' && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {isVendor ? `My Supply History` : `Supply History (${supplyHistory.length})`}
+            </h2>
+            {(() => {
+              const filteredHistory = isVendor 
+                ? supplyHistory.filter(s => s.vendorId === vendorId)
+                : supplyHistory
+              
+              return filteredHistory.length === 0 ? (
+                <p className="text-gray-400">No supply transactions yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="px-4 py-2 text-left">ID</th>
+                        <th className="px-4 py-2 text-left">Material</th>
+                        {!isVendor && <th className="px-4 py-2 text-left">Vendor</th>}
+                        <th className="px-4 py-2 text-left">Quantity</th>
+                        <th className="px-4 py-2 text-left">Price/Unit</th>
+                        <th className="px-4 py-2 text-left">Total Amount</th>
+                        <th className="px-4 py-2 text-left">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory.map((s) => (
+                        <tr key={s.id} className="border-b border-gray-700">
+                          <td className="px-4 py-2">{s.id}</td>
+                          <td className="px-4 py-2">{getMaterialName(s.materialId)}</td>
+                          {!isVendor && <td className="px-4 py-2">{getVendorName(s.vendorId)}</td>}
+                          <td className="px-4 py-2">{s.quantity}</td>
+                          <td className="px-4 py-2">${s.pricePerUnit}</td>
+                          <td className="px-4 py-2 font-semibold text-green-400">${s.totalAmount}</td>
+                          <td className="px-4 py-2">{formatDate(s.suppliedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>

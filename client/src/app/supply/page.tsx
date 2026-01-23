@@ -4,30 +4,81 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadWeb3, getContract } from '@/lib/web3'
 
-interface Medicine {
+interface Product {
   id: string
   name: string
   description: string
-  quantity: string
-  RMSid: string
-  MANid: string
-  DISid: string
-  RETid: string
+  targetQuantity: string
+  manufacturerId: string
+  distributorId: string
+  retailerId: string
   stage: string
+  createdAt: string
 }
 
-export default function Supply() {
+interface Material {
+  id: string
+  name: string
+  category: string
+  availableQuantity: string
+  unit: string
+  pricePerUnit: string
+  vendorId: string
+}
+
+interface ProductMaterialUsage {
+  materialId: string
+  quantityUsed: string
+  assignedAt: string
+}
+
+interface Manufacturer {
+  id: string
+  addr: string
+  name: string
+  location: string
+}
+
+interface Distributor {
+  id: string
+  addr: string
+  name: string
+  location: string
+}
+
+interface Retailer {
+  id: string
+  addr: string
+  name: string
+  location: string
+}
+
+interface Vendor {
+  id: string
+  name: string
+}
+
+export default function SupplyChainPage() {
   const router = useRouter()
   const [currentAccount, setCurrentAccount] = useState('')
-  const [loader, setLoader] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [supplyChain, setSupplyChain] = useState<any>(null)
-  const [med, setMed] = useState<{ [key: number]: Medicine }>({})
-  const [medStage, setMedStage] = useState<string[]>([])
-  const [rmsId, setRmsId] = useState('')
-  const [manId, setManId] = useState('')
-  const [disId, setDisId] = useState('')
-  const [retId, setRetId] = useState('')
-  const [soldId, setSoldId] = useState('')
+  
+  const [products, setProducts] = useState<Product[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
+  const [distributors, setDistributors] = useState<Distributor[]>([])
+  const [retailers, setRetailers] = useState<Retailer[]>([])
+  const [productMaterials, setProductMaterials] = useState<{[key: string]: ProductMaterialUsage[]}>({})
+  
+  const [userRole, setUserRole] = useState<'none' | 'manufacturer' | 'distributor' | 'retailer'>('none')
+  const [userRoleId, setUserRoleId] = useState<string>('0')
+  const [userRoleInfo, setUserRoleInfo] = useState<any>(null)
+
+  // Material selection form for manufacturer
+  const [selectedProduct, setSelectedProduct] = useState<string>('')
+  const [materialSelection, setMaterialSelection] = useState({ materialId: '', quantity: '' })
 
   useEffect(() => {
     loadWeb3()
@@ -36,647 +87,508 @@ export default function Supply() {
 
   const loadBlockchainData = async () => {
     try {
-      setLoader(true)
+      setLoading(true)
       const { contract, account } = await getContract()
       setSupplyChain(contract)
       setCurrentAccount(account)
 
-      const medCtr = await contract.methods.productCtr().call()
-      const medData: { [key: number]: Medicine } = {}
-      const medStageData: string[] = []
-
-      for (let i = 0; i < medCtr; i++) {
-        medData[i] = await contract.methods.ProductStock(i + 1).call()
-        medStageData[i] = await contract.methods.showStage(i + 1).call()
+      // Load vendors
+      const vendorCount = await contract.methods.vendorCtr().call()
+      const vendorPromises = []
+      for (let i = 1; i <= parseInt(vendorCount); i++) {
+        vendorPromises.push(contract.methods.vendors(i).call())
       }
+      setVendors(await Promise.all(vendorPromises))
 
-      setMed(medData)
-      setMedStage(medStageData)
-      setLoader(false)
-    } catch (err: any) {
-      const errorMessage = err?.message || 'The smart contract is not deployed to the current network'
-      console.error('Error loading blockchain data:', err)
-      alert(errorMessage)
-      setLoader(false)
-    }
-  }
-
-  const handlerChangeRMSId = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRmsId(event.target.value)
-  }
-
-  const handlerChangeManId = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setManId(event.target.value)
-  }
-
-  const handlerChangeDisId = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDisId(event.target.value)
-  }
-
-  const handlerChangeRetId = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRetId(event.target.value)
-  }
-
-  const handlerChangeSoldId = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSoldId(event.target.value)
-  }
-
-  const handlerSubmitRMSsupply = async (event: React.FormEvent) => {
-    event.preventDefault()
-    try {
-      const receipt = await supplyChain.methods.RMSsupply(rmsId).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setRmsId('')
-        alert('Raw materials supplied successfully!')
+      // Load materials
+      const materialCount = await contract.methods.materialCtr().call()
+      const materialPromises = []
+      for (let i = 1; i <= parseInt(materialCount); i++) {
+        materialPromises.push(contract.methods.materials(i).call())
       }
-    } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
+      const materialData = await Promise.all(materialPromises)
+      setMaterials(materialData)
+
+      // Load products
+      const productCount = await contract.methods.productCtr().call()
+      const productPromises = []
+      for (let i = 1; i <= parseInt(productCount); i++) {
+        productPromises.push(contract.methods.products(i).call())
       }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('findRMS') || errorMessage.includes('findMAN') || errorMessage.includes('findDIS') || errorMessage.includes('findRET')) {
-          errorMessage = 'Your account is not registered for this role. Please register your account first in the Roles page.'
-        } else if (errorMessage.includes('stage') || errorMessage.includes('STAGE')) {
-          errorMessage = 'Invalid stage transition. Make sure the medicine is in the correct stage for this operation.'
-        } else if (errorMessage.includes('medicineID') || errorMessage.includes('_medicineID')) {
-          errorMessage = 'Invalid medicine ID. Please check the medicine ID and try again.'
+      const productData = await Promise.all(productPromises)
+      setProducts(productData)
+
+      // Load product materials
+      const prodMaterials: {[key: string]: ProductMaterialUsage[]} = {}
+      for (let i = 1; i <= parseInt(productCount); i++) {
+        const count = await contract.methods.getProductMaterialsCount(i).call()
+        if (parseInt(count) > 0) {
+          prodMaterials[i.toString()] = await contract.methods.getProductMaterials(i).call()
         } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
+          prodMaterials[i.toString()] = []
         }
       }
+      setProductMaterials(prodMaterials)
+
+      // Load manufacturers
+      const manCount = await contract.methods.manufacturerCtr().call()
+      const manPromises = []
+      for (let i = 1; i <= parseInt(manCount); i++) {
+        manPromises.push(contract.methods.manufacturers(i).call())
+      }
+      const manData = await Promise.all(manPromises)
+      setManufacturers(manData)
+
+      // Load distributors
+      const disCount = await contract.methods.distributorCtr().call()
+      const disPromises = []
+      for (let i = 1; i <= parseInt(disCount); i++) {
+        disPromises.push(contract.methods.distributors(i).call())
+      }
+      setDistributors(await Promise.all(disPromises))
+
+      // Load retailers
+      const retCount = await contract.methods.retailerCtr().call()
+      const retPromises = []
+      for (let i = 1; i <= parseInt(retCount); i++) {
+        retPromises.push(contract.methods.retailers(i).call())
+      }
+      setRetailers(await Promise.all(retPromises))
+
+      // Determine user role
+      const manId = await contract.methods.findManufacturer(account).call()
+      const disId = await contract.methods.findDistributor(account).call()
+      const retId = await contract.methods.findRetailer(account).call()
+
+      if (parseInt(manId) > 0) {
+        setUserRole('manufacturer')
+        setUserRoleId(manId)
+        setUserRoleInfo(manData.find(m => m.id === manId))
+      } else if (parseInt(disId) > 0) {
+        setUserRole('distributor')
+        setUserRoleId(disId)
+      } else if (parseInt(retId) > 0) {
+        setUserRole('retailer')
+        setUserRoleId(retId)
+      }
       
-      console.error('Transaction error:', err)
-      alert(errorMessage)
+      setLoading(false)
+    } catch (err: any) {
+      console.error('Error:', err)
+      alert(err?.message || 'Error loading data')
+      setLoading(false)
     }
   }
 
-  const handlerSubmitManufacturing = async (event: React.FormEvent) => {
-    event.preventDefault()
+  // Manufacturer selects material for a product
+  const selectMaterial = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !selectedProduct || !materialSelection.materialId) return
+
     try {
-      const receipt = await supplyChain.methods.Manufacturing(manId).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setManId('')
-        alert('Manufacturing completed successfully!')
-      }
+      await supplyChain.methods.manufacturerSelectMaterial(
+        parseInt(selectedProduct),
+        parseInt(materialSelection.materialId),
+        parseInt(materialSelection.quantity)
+      ).send({ from: currentAccount })
+      
+      setMaterialSelection({ materialId: '', quantity: '' })
+      loadBlockchainData()
+      alert('Material selected! Quantity deducted from inventory.')
     } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
-      }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('findRMS') || errorMessage.includes('findMAN') || errorMessage.includes('findDIS') || errorMessage.includes('findRET')) {
-          errorMessage = 'Your account is not registered for this role. Please register your account first in the Roles page.'
-        } else if (errorMessage.includes('stage') || errorMessage.includes('STAGE')) {
-          errorMessage = 'Invalid stage transition. Make sure the medicine is in the correct stage for this operation.'
-        } else if (errorMessage.includes('medicineID') || errorMessage.includes('_medicineID')) {
-          errorMessage = 'Invalid medicine ID. Please check the medicine ID and try again.'
-        } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
-        }
-      }
-      
-      console.error('Transaction error:', err)
-      alert(errorMessage)
+      console.error(err)
+      alert(err?.message || 'Error selecting material')
     }
   }
 
-  const handlerSubmitDistribute = async (event: React.FormEvent) => {
-    event.preventDefault()
+  // Manufacturer confirms and starts manufacturing
+  const confirmManufacturing = async (productId: string) => {
+    if (!supplyChain) return
+
     try {
-      const receipt = await supplyChain.methods.Distribute(disId).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setDisId('')
-        alert('Distribution completed successfully!')
-      }
+      await supplyChain.methods.confirmAndStartManufacturing(parseInt(productId)).send({ from: currentAccount })
+      loadBlockchainData()
+      alert('Manufacturing started!')
     } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
-      }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('findRMS') || errorMessage.includes('findMAN') || errorMessage.includes('findDIS') || errorMessage.includes('findRET')) {
-          errorMessage = 'Your account is not registered for this role. Please register your account first in the Roles page.'
-        } else if (errorMessage.includes('stage') || errorMessage.includes('STAGE')) {
-          errorMessage = 'Invalid stage transition. Make sure the medicine is in the correct stage for this operation.'
-        } else if (errorMessage.includes('medicineID') || errorMessage.includes('_medicineID')) {
-          errorMessage = 'Invalid medicine ID. Please check the medicine ID and try again.'
-        } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
-        }
-      }
-      
-      console.error('Transaction error:', err)
-      alert(errorMessage)
+      console.error(err)
+      alert(err?.message || 'Error starting manufacturing')
     }
   }
 
-  const handlerSubmitRetail = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const startDistribution = async (productId: string) => {
+    if (!supplyChain) return
+
     try {
-      const receipt = await supplyChain.methods.Retail(retId).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setRetId('')
-        alert('Retail completed successfully!')
-      }
+      await supplyChain.methods.startDistribution(parseInt(productId)).send({ from: currentAccount })
+      loadBlockchainData()
+      alert('Distribution started!')
     } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
-      }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('findRMS') || errorMessage.includes('findMAN') || errorMessage.includes('findDIS') || errorMessage.includes('findRET')) {
-          errorMessage = 'Your account is not registered for this role. Please register your account first in the Roles page.'
-        } else if (errorMessage.includes('stage') || errorMessage.includes('STAGE')) {
-          errorMessage = 'Invalid stage transition. Make sure the medicine is in the correct stage for this operation.'
-        } else if (errorMessage.includes('medicineID') || errorMessage.includes('_medicineID')) {
-          errorMessage = 'Invalid medicine ID. Please check the medicine ID and try again.'
-        } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
-        }
-      }
-      
-      console.error('Transaction error:', err)
-      alert(errorMessage)
+      console.error(err)
+      alert(err?.message || 'Error starting distribution')
     }
   }
 
-  const handlerSubmitSold = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const receiveAtRetail = async (productId: string) => {
+    if (!supplyChain) return
+
     try {
-      const receipt = await supplyChain.methods.sold(soldId).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setSoldId('')
-        alert('Item marked as sold successfully!')
-      }
+      await supplyChain.methods.receiveAtRetail(parseInt(productId)).send({ from: currentAccount })
+      loadBlockchainData()
+      alert('Product received at retail!')
     } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
-      }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('findRMS') || errorMessage.includes('findMAN') || errorMessage.includes('findDIS') || errorMessage.includes('findRET')) {
-          errorMessage = 'Your account is not registered for this role. Please register your account first in the Roles page.'
-        } else if (errorMessage.includes('stage') || errorMessage.includes('STAGE')) {
-          errorMessage = 'Invalid stage transition. Make sure the medicine is in the correct stage for this operation.'
-        } else if (errorMessage.includes('medicineID') || errorMessage.includes('_medicineID')) {
-          errorMessage = 'Invalid medicine ID. Please check the medicine ID and try again.'
-        } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
-        }
-      }
-      
-      console.error('Transaction error:', err)
-      alert(errorMessage)
+      console.error(err)
+      alert(err?.message || 'Error receiving at retail')
     }
+  }
+
+  const markAsSold = async (productId: string) => {
+    if (!supplyChain) return
+
+    try {
+      await supplyChain.methods.markAsSold(parseInt(productId)).send({ from: currentAccount })
+      loadBlockchainData()
+      alert('Product marked as sold!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error marking as sold')
+    }
+  }
+
+  const getStageText = (stage: string) => {
+    const stages = ['Init', 'Materials Selected', 'Manufacturing', 'Distribution', 'Retail', 'Sold']
+    return stages[parseInt(stage)] || 'Unknown'
   }
 
   const getStageColor = (stage: string) => {
-    if (stage.includes('Ordered')) return 'bg-blue-100 text-blue-700 border-blue-300'
-    if (stage.includes('Raw Material')) return 'bg-green-100 text-green-700 border-green-300'
-    if (stage.includes('Manufacturing')) return 'bg-yellow-100 text-yellow-700 border-yellow-300'
-    if (stage.includes('Distribution')) return 'bg-purple-100 text-purple-700 border-purple-300'
-    if (stage.includes('Retail')) return 'bg-orange-100 text-orange-700 border-orange-300'
-    if (stage.includes('Sold')) return 'bg-gray-100 text-gray-700 border-gray-300'
-    return 'bg-gray-100 text-gray-700 border-gray-300'
+    const colors = ['bg-gray-600', 'bg-blue-600', 'bg-yellow-600', 'bg-purple-600', 'bg-green-600', 'bg-emerald-600']
+    return colors[parseInt(stage)] || 'bg-gray-600'
   }
 
-  if (loader) {
+  const getRoleBadge = () => {
+    if (userRole === 'manufacturer') return { text: 'Manufacturer', color: 'bg-yellow-600' }
+    if (userRole === 'distributor') return { text: 'Distributor', color: 'bg-purple-600' }
+    if (userRole === 'retailer') return { text: 'Retailer', color: 'bg-green-600' }
+    return { text: 'No Role Assigned', color: 'bg-gray-600' }
+  }
+
+  const getMaterialName = (id: string) => materials.find(m => m.id === id)?.name || 'Unknown'
+  const getMaterialUnit = (id: string) => materials.find(m => m.id === id)?.unit || ''
+  const getVendorName = (id: string) => vendors.find(v => v.id === id)?.name || 'Unknown'
+  const getManufacturerName = (id: string) => manufacturers.find(m => m.id === id)?.name || 'Not assigned'
+  const getDistributorName = (id: string) => distributors.find(d => d.id === id)?.name || 'Not assigned'
+  const getRetailerName = (id: string) => retailers.find(r => r.id === id)?.name || 'Not assigned'
+
+  // Products that manufacturer can work on (Init or already assigned to this manufacturer)
+  const manufacturerProducts = products.filter(p => 
+    p.stage === '0' || // Init - can select materials
+    (p.stage === '1' && p.manufacturerId === userRoleId) // MaterialsAssigned by this manufacturer
+  )
+
+  const distributorProducts = products.filter(p => p.stage === '2') // Manufacturing complete
+  const retailerProducts = products.filter(p => 
+    p.stage === '3' || // In distribution
+    (p.stage === '4' && p.retailerId === userRoleId) // At this retailer
+  )
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-orange-50 to-red-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-600 mx-auto mb-4"></div>
-          <h1 className="text-2xl font-bold text-gray-700">Loading...</h1>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
+  const roleBadge = getRoleBadge()
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 p-5">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Supply Chain Flow</h1>
-                <p className="text-gray-600 text-sm">Manage the flow of materials through the supply chain</p>
-              </div>
+    <div className="min-h-screen bg-gray-900 text-white py-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">🚚 Supply Chain Operations</h1>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+          >
+            ← Back to Home
+          </button>
+        </div>
+
+        {/* User Info */}
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-300">Connected: <span className="text-blue-400">{currentAccount}</span></p>
+              {userRoleInfo && <p className="text-gray-400 text-sm">{userRoleInfo.name} - {userRoleInfo.location}</p>}
             </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              HOME
+            <span className={`px-4 py-2 rounded-full font-semibold ${roleBadge.color}`}>
+              {roleBadge.text}
+            </span>
+          </div>
+        </div>
+
+        {userRole === 'none' ? (
+          <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-6 text-center">
+            <h2 className="text-xl font-bold text-yellow-300 mb-4">⚠️ No Role Assigned</h2>
+            <p className="text-gray-300 mb-4">
+              You are not registered as a manufacturer, distributor, or retailer.
+            </p>
+            <button onClick={() => router.push('/roles')} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg">
+              View Participants
             </button>
           </div>
-          <div className="text-xs text-gray-500 font-mono">
-            Account: {currentAccount}
-          </div>
-        </div>
+        ) : (
+          <div className="space-y-6">
+            
+            {/* MANUFACTURER VIEW */}
+            {userRole === 'manufacturer' && (
+              <>
+                <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                  <p className="text-blue-300">
+                    🏭 As a <strong>Manufacturer</strong>: Select materials for products, then start manufacturing.
+                    Material quantities will auto-deduct from inventory.
+                  </p>
+                </div>
 
-        {/* Flow Visualization */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-            <svg className="w-6 h-6 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            Supply Chain Process Flow
-          </h2>
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 p-6 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl">
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                1
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">Order</span>
-            </div>
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">RMS</span>
-            </div>
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                </svg>
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">Manufacture</span>
-            </div>
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">Distribute</span>
-            </div>
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">Retail</span>
-            </div>
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="text-xs mt-2 text-gray-700 font-semibold text-center">Sold</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Medicines Table */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-              <svg className="w-6 h-6 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              Available Batteries
-            </h2>
-            <div className="text-sm text-gray-500">
-              Total: {Object.keys(med).length} items
-            </div>
-          </div>
-          
-          {Object.keys(med).length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="text-gray-500 text-lg">No batteries available yet</p>
-              <p className="text-gray-400 text-sm mt-2">Add batteries in the Order Materials page</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-orange-50 to-red-50">
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">ID</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Name</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Description</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Current Stage</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {Object.keys(med).map((key) => {
-                    const index = parseInt(key)
-                    const stage = medStage[index]
-                    return (
-                      <tr key={key} className="hover:bg-orange-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white font-bold mr-3">
-                              {med[index].id}
+                {/* Products to work on */}
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-xl font-bold mb-4">📦 Products Available</h2>
+                  
+                  {manufacturerProducts.length === 0 ? (
+                    <p className="text-gray-400">No products available. Admin needs to create products first.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {manufacturerProducts.map((product) => (
+                        <div key={product.id} className="bg-gray-700 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="text-lg font-bold">{product.name}</h3>
+                              <p className="text-gray-400 text-sm">{product.description}</p>
+                              <p className="text-sm mt-1">Target Qty: <span className="text-green-400">{product.targetQuantity}</span></p>
                             </div>
-                            <span className="font-semibold text-gray-800">{med[index].id}</span>
+                            <span className={`px-3 py-1 rounded-full text-sm ${getStageColor(product.stage)}`}>
+                              {getStageText(product.stage)}
+                            </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-800">{med[index].name}</td>
-                        <td className="px-6 py-4 text-gray-600">{med[index].description}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStageColor(stage)}`}>
-                            {stage}
+
+                          {/* Show already selected materials */}
+                          {productMaterials[product.id]?.length > 0 && (
+                            <div className="mb-4 bg-gray-800 rounded p-3">
+                              <p className="text-sm font-semibold mb-2">Selected Materials:</p>
+                              {productMaterials[product.id].map((pm, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span>{getMaterialName(pm.materialId)}</span>
+                                  <span className="text-green-400">{pm.quantityUsed} {getMaterialUnit(pm.materialId)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Material Selection Form - Only for Init or MaterialsAssigned stage */}
+                          {(product.stage === '0' || product.stage === '1') && (
+                            <div className="border-t border-gray-600 pt-4 mt-4">
+                              <p className="text-sm font-semibold mb-3">➕ Add Material to this Product:</p>
+                              <form onSubmit={(e) => { setSelectedProduct(product.id); selectMaterial(e); }} className="flex gap-2 flex-wrap">
+                                <select
+                                  value={selectedProduct === product.id ? materialSelection.materialId : ''}
+                                  onChange={(e) => { setSelectedProduct(product.id); setMaterialSelection({...materialSelection, materialId: e.target.value}); }}
+                                  className="bg-gray-600 rounded px-3 py-2 text-sm flex-1 min-w-[200px]"
+                                  required
+                                >
+                                  <option value="">Select Material</option>
+                                  {materials.filter(m => parseInt(m.availableQuantity) > 0).map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name} (Available: {m.availableQuantity} {m.unit}) - {getVendorName(m.vendorId)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Qty"
+                                  value={selectedProduct === product.id ? materialSelection.quantity : ''}
+                                  onChange={(e) => { setSelectedProduct(product.id); setMaterialSelection({...materialSelection, quantity: e.target.value}); }}
+                                  className="bg-gray-600 rounded px-3 py-2 text-sm w-24"
+                                  min="1"
+                                  required
+                                />
+                                <button
+                                  type="submit"
+                                  onClick={() => setSelectedProduct(product.id)}
+                                  className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm font-semibold"
+                                >
+                                  Add
+                                </button>
+                              </form>
+                            </div>
+                          )}
+
+                          {/* Start Manufacturing Button - Only when materials are assigned */}
+                          {product.stage === '1' && productMaterials[product.id]?.length > 0 && (
+                            <button
+                              onClick={() => confirmManufacturing(product.id)}
+                              className="mt-4 bg-yellow-600 hover:bg-yellow-500 px-6 py-2 rounded-lg font-semibold w-full"
+                            >
+                              ✅ Confirm & Start Manufacturing
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Materials Overview */}
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-xl font-bold mb-4">🧱 Available Materials</h2>
+                  {materials.filter(m => parseInt(m.availableQuantity) > 0).length === 0 ? (
+                    <p className="text-yellow-400">⚠️ No materials available. Vendors need to add materials first.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-700">
+                            <th className="px-3 py-2 text-left">Material</th>
+                            <th className="px-3 py-2 text-left">Category</th>
+                            <th className="px-3 py-2 text-left">Available</th>
+                            <th className="px-3 py-2 text-left">Price/Unit</th>
+                            <th className="px-3 py-2 text-left">Vendor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {materials.filter(m => parseInt(m.availableQuantity) > 0).map((m) => (
+                            <tr key={m.id} className="border-b border-gray-700">
+                              <td className="px-3 py-2">{m.name}</td>
+                              <td className="px-3 py-2">{m.category}</td>
+                              <td className="px-3 py-2 text-green-400">{m.availableQuantity} {m.unit}</td>
+                              <td className="px-3 py-2">${m.pricePerUnit}</td>
+                              <td className="px-3 py-2">{getVendorName(m.vendorId)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* DISTRIBUTOR VIEW */}
+            {userRole === 'distributor' && (
+              <>
+                <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-4">
+                  <p className="text-purple-300">
+                    🚛 As a <strong>Distributor</strong>: Pick up manufactured products for distribution.
+                  </p>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-xl font-bold mb-4">📦 Products Ready for Distribution</h2>
+                  {distributorProducts.length === 0 ? (
+                    <p className="text-gray-400">No products ready for distribution.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {distributorProducts.map((p) => (
+                        <div key={p.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
+                          <div>
+                            <h3 className="font-bold">{p.name}</h3>
+                            <p className="text-sm text-gray-400">Manufactured by: {getManufacturerName(p.manufacturerId)}</p>
+                          </div>
+                          <button
+                            onClick={() => startDistribution(p.id)}
+                            className="bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-lg font-semibold"
+                          >
+                            🚛 Start Distribution
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* RETAILER VIEW */}
+            {userRole === 'retailer' && (
+              <>
+                <div className="bg-green-900/30 border border-green-700 rounded-lg p-4">
+                  <p className="text-green-300">
+                    🏪 As a <strong>Retailer</strong>: Receive products and mark them as sold.
+                  </p>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-xl font-bold mb-4">📦 Products for Your Store</h2>
+                  {retailerProducts.length === 0 ? (
+                    <p className="text-gray-400">No products available.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {retailerProducts.map((p) => (
+                        <div key={p.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
+                          <div>
+                            <h3 className="font-bold">{p.name}</h3>
+                            <p className="text-sm text-gray-400">
+                              {p.stage === '3' ? `Distributed by: ${getDistributorName(p.distributorId)}` : 'At your store'}
+                            </p>
+                          </div>
+                          {p.stage === '3' && (
+                            <button
+                              onClick={() => receiveAtRetail(p.id)}
+                              className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-semibold"
+                            >
+                              📦 Receive at Store
+                            </button>
+                          )}
+                          {p.stage === '4' && p.retailerId === userRoleId && (
+                            <button
+                              onClick={() => markAsSold(p.id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg font-semibold"
+                            >
+                              💰 Mark as Sold
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* All Products Overview */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-bold mb-4">📋 All Products Overview</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="px-3 py-2 text-left">ID</th>
+                      <th className="px-3 py-2 text-left">Name</th>
+                      <th className="px-3 py-2 text-left">Stage</th>
+                      <th className="px-3 py-2 text-left">Manufacturer</th>
+                      <th className="px-3 py-2 text-left">Distributor</th>
+                      <th className="px-3 py-2 text-left">Retailer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => (
+                      <tr key={p.id} className="border-b border-gray-700">
+                        <td className="px-3 py-2">{p.id}</td>
+                        <td className="px-3 py-2">{p.name}</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 rounded text-xs ${getStageColor(p.stage)}`}>
+                            {getStageText(p.stage)}
                           </span>
                         </td>
+                        <td className="px-3 py-2">{getManufacturerName(p.manufacturerId)}</td>
+                        <td className="px-3 py-2">{getDistributorName(p.distributorId)}</td>
+                        <td className="px-3 py-2">{getRetailerName(p.retailerId)}</td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Supply Chain Steps */}
-        <div className="space-y-6">
-          {/* Step 1: RMS Supply */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-xl p-6 border-l-4 border-blue-500">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h5 className="text-xl font-bold text-gray-800">
-                  Step 1: Supply Raw Materials
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">Only a registered Raw Material Supplier can perform this step</p>
-              </div>
-              <div className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-bold">
-                1
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <form onSubmit={handlerSubmitRMSsupply} className="flex gap-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <input
-                  className="w-full pl-12 pr-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg bg-white"
-                  type="text"
-                  onChange={handlerChangeRMSId}
-                  placeholder="Enter Battery ID"
-                  value={rmsId}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Supply
-              </button>
-            </form>
           </div>
-
-          {/* Step 2: Manufacturing */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-xl p-6 border-l-4 border-green-500">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h5 className="text-xl font-bold text-gray-800">
-                  Step 2: Manufacture
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">Only a registered Manufacturer can perform this step</p>
-              </div>
-              <div className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-bold">
-                2
-              </div>
-            </div>
-            <form onSubmit={handlerSubmitManufacturing} className="flex gap-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <input
-                  className="w-full pl-12 pr-4 py-3 border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg bg-white"
-                  type="text"
-                  onChange={handlerChangeManId}
-                  placeholder="Enter Battery ID"
-                  value={manId}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Manufacture
-              </button>
-            </form>
-          </div>
-
-          {/* Step 3: Distribute */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl shadow-xl p-6 border-l-4 border-purple-500">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h5 className="text-xl font-bold text-gray-800">
-                  Step 3: Distribute
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">Only a registered Distributor can perform this step</p>
-              </div>
-              <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-xs font-bold">
-                3
-              </div>
-            </div>
-            <form onSubmit={handlerSubmitDistribute} className="flex gap-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <input
-                  className="w-full pl-12 pr-4 py-3 border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg bg-white"
-                  type="text"
-                  onChange={handlerChangeDisId}
-                  placeholder="Enter Battery ID"
-                  value={disId}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Distribute
-              </button>
-            </form>
-          </div>
-
-          {/* Step 4: Retail */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-2xl shadow-xl p-6 border-l-4 border-orange-500">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h5 className="text-xl font-bold text-gray-800">
-                  Step 4: Retail
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">Only a registered Retailer can perform this step</p>
-              </div>
-              <div className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">
-                4
-              </div>
-            </div>
-            <form onSubmit={handlerSubmitRetail} className="flex gap-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <input
-                  className="w-full pl-12 pr-4 py-3 border-2 border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg bg-white"
-                  type="text"
-                  onChange={handlerChangeRetId}
-                  placeholder="Enter Battery ID"
-                  value={retId}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Retail
-              </button>
-            </form>
-          </div>
-
-          {/* Step 5: Sold */}
-          <div className="bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl shadow-xl p-6 border-l-4 border-red-500">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h5 className="text-xl font-bold text-gray-800">
-                  Step 5: Mark as Sold
-                </h5>
-                <p className="text-sm text-gray-600 mt-1">Only a registered Retailer can perform this step</p>
-              </div>
-              <div className="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold">
-                5
-              </div>
-            </div>
-            <form onSubmit={handlerSubmitSold} className="flex gap-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <input
-                  className="w-full pl-12 pr-4 py-3 border-2 border-red-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg bg-white"
-                  type="text"
-                  onChange={handlerChangeSoldId}
-                  placeholder="Enter Battery ID"
-                  value={soldId}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Mark as Sold
-              </button>
-            </form>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

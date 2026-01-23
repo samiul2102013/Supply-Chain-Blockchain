@@ -23,106 +23,213 @@ import type {
   TypedContractMethod,
 } from "./common";
 
+export declare namespace SupplyChain {
+  export type MaterialStruct = {
+    id: BigNumberish;
+    name: string;
+    category: string;
+    totalQuantity: BigNumberish;
+    availableQuantity: BigNumberish;
+    unit: string;
+    pricePerUnit: BigNumberish;
+    vendorId: BigNumberish;
+    receivedAt: BigNumberish;
+    isActive: boolean;
+  };
+
+  export type MaterialStructOutput = [
+    id: bigint,
+    name: string,
+    category: string,
+    totalQuantity: bigint,
+    availableQuantity: bigint,
+    unit: string,
+    pricePerUnit: bigint,
+    vendorId: bigint,
+    receivedAt: bigint,
+    isActive: boolean
+  ] & {
+    id: bigint;
+    name: string;
+    category: string;
+    totalQuantity: bigint;
+    availableQuantity: bigint;
+    unit: string;
+    pricePerUnit: bigint;
+    vendorId: bigint;
+    receivedAt: bigint;
+    isActive: boolean;
+  };
+
+  export type ProductStruct = {
+    id: BigNumberish;
+    name: string;
+    description: string;
+    targetQuantity: BigNumberish;
+    manufacturerId: BigNumberish;
+    distributorId: BigNumberish;
+    retailerId: BigNumberish;
+    stage: BigNumberish;
+    createdAt: BigNumberish;
+  };
+
+  export type ProductStructOutput = [
+    id: bigint,
+    name: string,
+    description: string,
+    targetQuantity: bigint,
+    manufacturerId: bigint,
+    distributorId: bigint,
+    retailerId: bigint,
+    stage: bigint,
+    createdAt: bigint
+  ] & {
+    id: bigint;
+    name: string;
+    description: string;
+    targetQuantity: bigint;
+    manufacturerId: bigint;
+    distributorId: bigint;
+    retailerId: bigint;
+    stage: bigint;
+    createdAt: bigint;
+  };
+
+  export type ProductMaterialUsageStruct = {
+    materialId: BigNumberish;
+    quantityUsed: BigNumberish;
+    assignedAt: BigNumberish;
+  };
+
+  export type ProductMaterialUsageStructOutput = [
+    materialId: bigint,
+    quantityUsed: bigint,
+    assignedAt: bigint
+  ] & { materialId: bigint; quantityUsed: bigint; assignedAt: bigint };
+
+  export type ProductTimelineStruct = {
+    createdAt: BigNumberish;
+    materialsAssignedAt: BigNumberish;
+    manufacturingStartedAt: BigNumberish;
+    manufacturingCompletedAt: BigNumberish;
+    distributionStartedAt: BigNumberish;
+    retailReceivedAt: BigNumberish;
+    soldAt: BigNumberish;
+  };
+
+  export type ProductTimelineStructOutput = [
+    createdAt: bigint,
+    materialsAssignedAt: bigint,
+    manufacturingStartedAt: bigint,
+    manufacturingCompletedAt: bigint,
+    distributionStartedAt: bigint,
+    retailReceivedAt: bigint,
+    soldAt: bigint
+  ] & {
+    createdAt: bigint;
+    materialsAssignedAt: bigint;
+    manufacturingStartedAt: bigint;
+    manufacturingCompletedAt: bigint;
+    distributionStartedAt: bigint;
+    retailReceivedAt: bigint;
+    soldAt: bigint;
+  };
+
+  export type VendorStruct = {
+    id: BigNumberish;
+    addr: AddressLike;
+    name: string;
+    location: string;
+    contactInfo: string;
+    materialTypes: string;
+    registeredAt: BigNumberish;
+    isActive: boolean;
+  };
+
+  export type VendorStructOutput = [
+    id: bigint,
+    addr: string,
+    name: string,
+    location: string,
+    contactInfo: string,
+    materialTypes: string,
+    registeredAt: bigint,
+    isActive: boolean
+  ] & {
+    id: bigint;
+    addr: string;
+    name: string;
+    location: string;
+    contactInfo: string;
+    materialTypes: string;
+    registeredAt: bigint;
+    isActive: boolean;
+  };
+}
+
 export interface SupplyChainInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "DIS"
-      | "Distribute"
-      | "MAN"
-      | "Manufacturing"
-      | "MaterialTransactions"
-      | "Materials"
       | "Owner"
-      | "ProductMaterials"
-      | "ProductStock"
-      | "ProductTimestamps"
-      | "RET"
-      | "RMS"
-      | "RMSsupply"
-      | "Retail"
-      | "VendorStats"
       | "addDistributor"
       | "addManufacturer"
       | "addMaterial"
-      | "addMedicine"
-      | "addProduct"
-      | "addRMS"
-      | "addRMSLegacy"
       | "addRetailer"
-      | "disCtr"
-      | "getMaterialTransactionCount"
-      | "getMaterialsForProduct"
-      | "getProductTimestamps"
-      | "getVendorDetails"
-      | "manCtr"
+      | "addVendor"
+      | "assignMaterialToProduct"
+      | "confirmAndStartManufacturing"
+      | "createProduct"
+      | "distributorCtr"
+      | "distributors"
+      | "findDistributor"
+      | "findManufacturer"
+      | "findRetailer"
+      | "findVendor"
+      | "getMaterial"
+      | "getProduct"
+      | "getProductMaterials"
+      | "getProductMaterialsCount"
+      | "getProductTimeline"
+      | "getVendor"
+      | "manufacturerCtr"
+      | "manufacturerSelectMaterial"
+      | "manufacturers"
+      | "markAsSold"
       | "materialCtr"
+      | "materials"
       | "productCtr"
-      | "rateVendor"
-      | "retCtr"
-      | "rmsCtr"
+      | "productMaterials"
+      | "productTimelines"
+      | "products"
+      | "receiveAtRetail"
+      | "restockMaterial"
+      | "retailerCtr"
+      | "retailers"
       | "showStage"
-      | "sold"
-      | "transactionCtr"
-      | "useMaterialForProduct"
-      | "verifyVendor"
+      | "startDistribution"
+      | "startManufacturing"
+      | "supplyHistory"
+      | "supplyHistoryCtr"
+      | "vendorAddMaterial"
+      | "vendorCtr"
+      | "vendorRestockMaterial"
+      | "vendors"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "DistributorAdded"
+      | "ManufacturerAdded"
       | "MaterialAdded"
-      | "MaterialTransactionRecorded"
-      | "ProductAdded"
-      | "RoleAdded"
+      | "MaterialRestocked"
+      | "MaterialsAssignedToProduct"
+      | "ProductCreated"
+      | "RetailerAdded"
       | "StageUpdated"
-      | "VendorRated"
-      | "VendorVerified"
+      | "VendorAdded"
   ): EventFragment;
 
-  encodeFunctionData(functionFragment: "DIS", values: [BigNumberish]): string;
-  encodeFunctionData(
-    functionFragment: "Distribute",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "MAN", values: [BigNumberish]): string;
-  encodeFunctionData(
-    functionFragment: "Manufacturing",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "MaterialTransactions",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "Materials",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(functionFragment: "Owner", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "ProductMaterials",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "ProductStock",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "ProductTimestamps",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "RET", values: [BigNumberish]): string;
-  encodeFunctionData(functionFragment: "RMS", values: [BigNumberish]): string;
-  encodeFunctionData(
-    functionFragment: "RMSsupply",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "Retail",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "VendorStats",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(
     functionFragment: "addDistributor",
     values: [AddressLike, string, string]
@@ -136,108 +243,164 @@ export interface SupplyChainInterface extends Interface {
     values: [string, string, BigNumberish, string, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "addMedicine",
-    values: [string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "addProduct",
-    values: [string, string, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "addRMS",
-    values: [AddressLike, string, string, string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "addRMSLegacy",
-    values: [AddressLike, string, string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "addRetailer",
     values: [AddressLike, string, string]
   ): string;
-  encodeFunctionData(functionFragment: "disCtr", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "getMaterialTransactionCount",
+    functionFragment: "addVendor",
+    values: [AddressLike, string, string, string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "assignMaterialToProduct",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "confirmAndStartManufacturing",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "createProduct",
+    values: [string, string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "distributorCtr",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getMaterialsForProduct",
+    functionFragment: "distributors",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getProductTimestamps",
+    functionFragment: "findDistributor",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "findManufacturer",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "findRetailer",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "findVendor",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMaterial",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getVendorDetails",
+    functionFragment: "getProduct",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "manCtr", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "getProductMaterials",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getProductMaterialsCount",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getProductTimeline",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getVendor",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "manufacturerCtr",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "manufacturerSelectMaterial",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "manufacturers",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "markAsSold",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "materialCtr",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "materials",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "productCtr",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "rateVendor",
+    functionFragment: "productMaterials",
     values: [BigNumberish, BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "retCtr", values?: undefined): string;
-  encodeFunctionData(functionFragment: "rmsCtr", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "productTimelines",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "products",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "receiveAtRetail",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "restockMaterial",
+    values: [BigNumberish, BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "retailerCtr",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "retailers",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "showStage",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(functionFragment: "sold", values: [BigNumberish]): string;
   encodeFunctionData(
-    functionFragment: "transactionCtr",
+    functionFragment: "startDistribution",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "startManufacturing",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "supplyHistory",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "supplyHistoryCtr",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "useMaterialForProduct",
+    functionFragment: "vendorAddMaterial",
+    values: [string, string, BigNumberish, string, BigNumberish]
+  ): string;
+  encodeFunctionData(functionFragment: "vendorCtr", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "vendorRestockMaterial",
     values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "verifyVendor",
+    functionFragment: "vendors",
     values: [BigNumberish]
   ): string;
 
-  decodeFunctionResult(functionFragment: "DIS", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "Distribute", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "MAN", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "Manufacturing",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "MaterialTransactions",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "Materials", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "Owner", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "ProductMaterials",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "ProductStock",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "ProductTimestamps",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "RET", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "RMS", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "RMSsupply", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "Retail", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "VendorStats",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "addDistributor",
     data: BytesLike
@@ -251,130 +414,186 @@ export interface SupplyChainInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "addMedicine",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "addProduct", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "addRMS", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "addRMSLegacy",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "addRetailer",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "disCtr", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "addVendor", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "getMaterialTransactionCount",
+    functionFragment: "assignMaterialToProduct",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getMaterialsForProduct",
+    functionFragment: "confirmAndStartManufacturing",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getProductTimestamps",
+    functionFragment: "createProduct",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getVendorDetails",
+    functionFragment: "distributorCtr",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "manCtr", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "distributors",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "findDistributor",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "findManufacturer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "findRetailer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "findVendor", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getMaterial",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getProduct", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getProductMaterials",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getProductMaterialsCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getProductTimeline",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getVendor", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "manufacturerCtr",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "manufacturerSelectMaterial",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "manufacturers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "markAsSold", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "materialCtr",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "materials", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "productCtr", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "rateVendor", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "retCtr", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "rmsCtr", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "productMaterials",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "productTimelines",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "products", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "receiveAtRetail",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "restockMaterial",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "retailerCtr",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "retailers", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "showStage", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "sold", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "transactionCtr",
+    functionFragment: "startDistribution",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "useMaterialForProduct",
+    functionFragment: "startManufacturing",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "verifyVendor",
+    functionFragment: "supplyHistory",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "supplyHistoryCtr",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "vendorAddMaterial",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "vendorCtr", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "vendorRestockMaterial",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "vendors", data: BytesLike): Result;
+}
+
+export namespace DistributorAddedEvent {
+  export type InputTuple = [
+    id: BigNumberish,
+    name: string,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [id: bigint, name: string, timestamp: bigint];
+  export interface OutputObject {
+    id: bigint;
+    name: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ManufacturerAddedEvent {
+  export type InputTuple = [
+    id: BigNumberish,
+    name: string,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [id: bigint, name: string, timestamp: bigint];
+  export interface OutputObject {
+    id: bigint;
+    name: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace MaterialAddedEvent {
   export type InputTuple = [
     materialId: BigNumberish,
     name: string,
-    supplierId: BigNumberish,
-    timestamp: BigNumberish
-  ];
-  export type OutputTuple = [
-    materialId: bigint,
-    name: string,
-    supplierId: bigint,
-    timestamp: bigint
-  ];
-  export interface OutputObject {
-    materialId: bigint;
-    name: string;
-    supplierId: bigint;
-    timestamp: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace MaterialTransactionRecordedEvent {
-  export type InputTuple = [
-    txId: BigNumberish,
-    materialId: BigNumberish,
     vendorId: BigNumberish,
-    txType: string,
-    timestamp: BigNumberish
-  ];
-  export type OutputTuple = [
-    txId: bigint,
-    materialId: bigint,
-    vendorId: bigint,
-    txType: string,
-    timestamp: bigint
-  ];
-  export interface OutputObject {
-    txId: bigint;
-    materialId: bigint;
-    vendorId: bigint;
-    txType: string;
-    timestamp: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace ProductAddedEvent {
-  export type InputTuple = [
-    productId: BigNumberish,
-    name: string,
     quantity: BigNumberish,
     timestamp: BigNumberish
   ];
   export type OutputTuple = [
-    productId: bigint,
+    materialId: bigint,
     name: string,
+    vendorId: bigint,
     quantity: bigint,
     timestamp: bigint
   ];
   export interface OutputObject {
-    productId: bigint;
+    materialId: bigint;
     name: string;
+    vendorId: bigint;
     quantity: bigint;
     timestamp: bigint;
   }
@@ -384,24 +603,92 @@ export namespace ProductAddedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace RoleAddedEvent {
+export namespace MaterialRestockedEvent {
   export type InputTuple = [
-    roleType: string,
-    roleId: BigNumberish,
-    addr: AddressLike,
-    name: string
+    materialId: BigNumberish,
+    quantity: BigNumberish,
+    vendorId: BigNumberish,
+    timestamp: BigNumberish
   ];
   export type OutputTuple = [
-    roleType: string,
-    roleId: bigint,
-    addr: string,
-    name: string
+    materialId: bigint,
+    quantity: bigint,
+    vendorId: bigint,
+    timestamp: bigint
   ];
   export interface OutputObject {
-    roleType: string;
-    roleId: bigint;
-    addr: string;
+    materialId: bigint;
+    quantity: bigint;
+    vendorId: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MaterialsAssignedToProductEvent {
+  export type InputTuple = [
+    productId: BigNumberish,
+    materialId: BigNumberish,
+    quantity: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    productId: bigint,
+    materialId: bigint,
+    quantity: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    productId: bigint;
+    materialId: bigint;
+    quantity: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ProductCreatedEvent {
+  export type InputTuple = [
+    productId: BigNumberish,
+    name: string,
+    targetQuantity: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    productId: bigint,
+    name: string,
+    targetQuantity: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    productId: bigint;
     name: string;
+    targetQuantity: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RetailerAddedEvent {
+  export type InputTuple = [
+    id: BigNumberish,
+    name: string,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [id: bigint, name: string, timestamp: bigint];
+  export interface OutputObject {
+    id: bigint;
+    name: string;
+    timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -434,33 +721,16 @@ export namespace StageUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace VendorRatedEvent {
+export namespace VendorAddedEvent {
   export type InputTuple = [
     vendorId: BigNumberish,
-    rating: BigNumberish,
+    name: string,
     timestamp: BigNumberish
   ];
-  export type OutputTuple = [
-    vendorId: bigint,
-    rating: bigint,
-    timestamp: bigint
-  ];
+  export type OutputTuple = [vendorId: bigint, name: string, timestamp: bigint];
   export interface OutputObject {
     vendorId: bigint;
-    rating: bigint;
-    timestamp: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace VendorVerifiedEvent {
-  export type InputTuple = [vendorId: BigNumberish, timestamp: BigNumberish];
-  export type OutputTuple = [vendorId: bigint, timestamp: bigint];
-  export interface OutputObject {
-    vendorId: bigint;
+    name: string;
     timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -512,199 +782,16 @@ export interface SupplyChain extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  DIS: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [string, bigint, string, string] & {
-        addr: string;
-        id: bigint;
-        name: string;
-        place: string;
-      }
-    ],
-    "view"
-  >;
-
-  Distribute: TypedContractMethod<
-    [_productID: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  MAN: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [string, bigint, string, string] & {
-        addr: string;
-        id: bigint;
-        name: string;
-        place: string;
-      }
-    ],
-    "view"
-  >;
-
-  Manufacturing: TypedContractMethod<
-    [_productID: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  MaterialTransactions: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, bigint, string] & {
-        id: bigint;
-        materialId: bigint;
-        vendorId: bigint;
-        productId: bigint;
-        quantity: bigint;
-        timestamp: bigint;
-        transactionType: string;
-      }
-    ],
-    "view"
-  >;
-
-  Materials: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [
-        bigint,
-        string,
-        string,
-        bigint,
-        string,
-        bigint,
-        bigint,
-        bigint,
-        boolean
-      ] & {
-        id: bigint;
-        name: string;
-        category: string;
-        quantity: bigint;
-        unit: string;
-        pricePerUnit: bigint;
-        supplierId: bigint;
-        addedTimestamp: bigint;
-        isActive: boolean;
-      }
-    ],
-    "view"
-  >;
-
   Owner: TypedContractMethod<[], [string], "view">;
 
-  ProductMaterials: TypedContractMethod<
-    [arg0: BigNumberish, arg1: BigNumberish],
-    [bigint],
-    "view"
-  >;
-
-  ProductStock: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [
-        bigint,
-        string,
-        string,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint
-      ] & {
-        id: bigint;
-        name: string;
-        description: string;
-        quantity: bigint;
-        RMSid: bigint;
-        MANid: bigint;
-        DISid: bigint;
-        RETid: bigint;
-        stage: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  ProductTimestamps: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, bigint] & {
-        orderedTimestamp: bigint;
-        rmsTimestamp: bigint;
-        manufacturingTimestamp: bigint;
-        distributionTimestamp: bigint;
-        retailTimestamp: bigint;
-        soldTimestamp: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  RET: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [string, bigint, string, string] & {
-        addr: string;
-        id: bigint;
-        name: string;
-        place: string;
-      }
-    ],
-    "view"
-  >;
-
-  RMS: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [string, bigint, string, string, string, string, bigint] & {
-        addr: string;
-        id: bigint;
-        name: string;
-        place: string;
-        contactInfo: string;
-        materialTypes: string;
-        registeredAt: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  RMSsupply: TypedContractMethod<
-    [_productID: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  Retail: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-
-  VendorStats: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, boolean] & {
-        totalOrders: bigint;
-        completedOrders: bigint;
-        totalQuantitySupplied: bigint;
-        lastActivityTimestamp: bigint;
-        rating: bigint;
-        isVerified: boolean;
-      }
-    ],
-    "view"
-  >;
-
   addDistributor: TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
 
   addManufacturer: TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
@@ -716,29 +803,23 @@ export interface SupplyChain extends BaseContract {
       _quantity: BigNumberish,
       _unit: string,
       _pricePerUnit: BigNumberish,
-      _supplierId: BigNumberish
+      _vendorId: BigNumberish
     ],
     [void],
     "nonpayable"
   >;
 
-  addMedicine: TypedContractMethod<
-    [_name: string, _description: string],
+  addRetailer: TypedContractMethod<
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
 
-  addProduct: TypedContractMethod<
-    [_name: string, _description: string, _quantity: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  addRMS: TypedContractMethod<
+  addVendor: TypedContractMethod<
     [
-      _address: AddressLike,
+      _addr: AddressLike,
       _name: string,
-      _place: string,
+      _location: string,
       _contactInfo: string,
       _materialTypes: string
     ],
@@ -746,175 +827,130 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
 
-  addRMSLegacy: TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
-    [void],
-    "nonpayable"
-  >;
-
-  addRetailer: TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
-    [void],
-    "nonpayable"
-  >;
-
-  disCtr: TypedContractMethod<[], [bigint], "view">;
-
-  getMaterialTransactionCount: TypedContractMethod<[], [bigint], "view">;
-
-  getMaterialsForProduct: TypedContractMethod<
-    [_productId: BigNumberish],
-    [bigint[]],
-    "view"
-  >;
-
-  getProductTimestamps: TypedContractMethod<
-    [_productID: BigNumberish],
+  assignMaterialToProduct: TypedContractMethod<
     [
-      [bigint, bigint, bigint, bigint, bigint, bigint] & {
-        ordered: bigint;
-        rms: bigint;
-        manufacturing: bigint;
-        distribution: bigint;
-        retail: bigint;
-        sold_time: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  getVendorDetails: TypedContractMethod<
-    [_vendorId: BigNumberish],
-    [
-      [
-        string,
-        string,
-        string,
-        string,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        boolean
-      ] & {
-        name: string;
-        place: string;
-        contactInfo: string;
-        materialTypes: string;
-        registeredAt: bigint;
-        totalOrders: bigint;
-        completedOrders: bigint;
-        totalQuantitySupplied: bigint;
-        rating: bigint;
-        isVerified: boolean;
-      }
-    ],
-    "view"
-  >;
-
-  manCtr: TypedContractMethod<[], [bigint], "view">;
-
-  materialCtr: TypedContractMethod<[], [bigint], "view">;
-
-  productCtr: TypedContractMethod<[], [bigint], "view">;
-
-  rateVendor: TypedContractMethod<
-    [_vendorId: BigNumberish, _rating: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  retCtr: TypedContractMethod<[], [bigint], "view">;
-
-  rmsCtr: TypedContractMethod<[], [bigint], "view">;
-
-  showStage: TypedContractMethod<[_productID: BigNumberish], [string], "view">;
-
-  sold: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-
-  transactionCtr: TypedContractMethod<[], [bigint], "view">;
-
-  useMaterialForProduct: TypedContractMethod<
-    [
-      _materialId: BigNumberish,
       _productId: BigNumberish,
+      _materialId: BigNumberish,
       _quantity: BigNumberish
     ],
     [void],
     "nonpayable"
   >;
 
-  verifyVendor: TypedContractMethod<
-    [_vendorId: BigNumberish],
+  confirmAndStartManufacturing: TypedContractMethod<
+    [_productId: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  getFunction<T extends ContractMethod = ContractMethod>(
-    key: string | FunctionFragment
-  ): T;
+  createProduct: TypedContractMethod<
+    [_name: string, _description: string, _targetQuantity: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
-  getFunction(
-    nameOrSignature: "DIS"
-  ): TypedContractMethod<
+  distributorCtr: TypedContractMethod<[], [bigint], "view">;
+
+  distributors: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, string, string] & {
+      [bigint, string, string, string, bigint] & {
+        id: bigint;
         addr: string;
-        id: bigint;
         name: string;
-        place: string;
+        location: string;
+        registeredAt: bigint;
       }
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "Distribute"
-  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "MAN"
-  ): TypedContractMethod<
+
+  findDistributor: TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+
+  findManufacturer: TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+
+  findRetailer: TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+
+  findVendor: TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+
+  getMaterial: TypedContractMethod<
+    [_materialId: BigNumberish],
+    [SupplyChain.MaterialStructOutput],
+    "view"
+  >;
+
+  getProduct: TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductStructOutput],
+    "view"
+  >;
+
+  getProductMaterials: TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductMaterialUsageStructOutput[]],
+    "view"
+  >;
+
+  getProductMaterialsCount: TypedContractMethod<
+    [_productId: BigNumberish],
+    [bigint],
+    "view"
+  >;
+
+  getProductTimeline: TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductTimelineStructOutput],
+    "view"
+  >;
+
+  getVendor: TypedContractMethod<
+    [_vendorId: BigNumberish],
+    [SupplyChain.VendorStructOutput],
+    "view"
+  >;
+
+  manufacturerCtr: TypedContractMethod<[], [bigint], "view">;
+
+  manufacturerSelectMaterial: TypedContractMethod<
+    [
+      _productId: BigNumberish,
+      _materialId: BigNumberish,
+      _quantity: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  manufacturers: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, string, string] & {
+      [bigint, string, string, string, bigint] & {
+        id: bigint;
         addr: string;
-        id: bigint;
         name: string;
-        place: string;
+        location: string;
+        registeredAt: bigint;
       }
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "Manufacturing"
-  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "MaterialTransactions"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, bigint, string] & {
-        id: bigint;
-        materialId: bigint;
-        vendorId: bigint;
-        productId: bigint;
-        quantity: bigint;
-        timestamp: bigint;
-        transactionType: string;
-      }
-    ],
-    "view"
+
+  markAsSold: TypedContractMethod<
+    [_productId: BigNumberish],
+    [void],
+    "nonpayable"
   >;
-  getFunction(
-    nameOrSignature: "Materials"
-  ): TypedContractMethod<
+
+  materialCtr: TypedContractMethod<[], [bigint], "view">;
+
+  materials: TypedContractMethod<
     [arg0: BigNumberish],
     [
       [
         bigint,
         string,
         string,
+        bigint,
         bigint,
         string,
         bigint,
@@ -925,29 +961,49 @@ export interface SupplyChain extends BaseContract {
         id: bigint;
         name: string;
         category: string;
-        quantity: bigint;
+        totalQuantity: bigint;
+        availableQuantity: bigint;
         unit: string;
         pricePerUnit: bigint;
-        supplierId: bigint;
-        addedTimestamp: bigint;
+        vendorId: bigint;
+        receivedAt: bigint;
         isActive: boolean;
       }
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "Owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "ProductMaterials"
-  ): TypedContractMethod<
+
+  productCtr: TypedContractMethod<[], [bigint], "view">;
+
+  productMaterials: TypedContractMethod<
     [arg0: BigNumberish, arg1: BigNumberish],
-    [bigint],
+    [
+      [bigint, bigint, bigint] & {
+        materialId: bigint;
+        quantityUsed: bigint;
+        assignedAt: bigint;
+      }
+    ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "ProductStock"
-  ): TypedContractMethod<
+
+  productTimelines: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {
+        createdAt: bigint;
+        materialsAssignedAt: bigint;
+        manufacturingStartedAt: bigint;
+        manufacturingCompletedAt: bigint;
+        distributionStartedAt: bigint;
+        retailReceivedAt: bigint;
+        soldAt: bigint;
+      }
+    ],
+    "view"
+  >;
+
+  products: TypedContractMethod<
     [arg0: BigNumberish],
     [
       [
@@ -964,96 +1020,141 @@ export interface SupplyChain extends BaseContract {
         id: bigint;
         name: string;
         description: string;
-        quantity: bigint;
-        RMSid: bigint;
-        MANid: bigint;
-        DISid: bigint;
-        RETid: bigint;
+        targetQuantity: bigint;
+        manufacturerId: bigint;
+        distributorId: bigint;
+        retailerId: bigint;
         stage: bigint;
+        createdAt: bigint;
       }
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "ProductTimestamps"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, bigint] & {
-        orderedTimestamp: bigint;
-        rmsTimestamp: bigint;
-        manufacturingTimestamp: bigint;
-        distributionTimestamp: bigint;
-        retailTimestamp: bigint;
-        soldTimestamp: bigint;
-      }
-    ],
-    "view"
+
+  receiveAtRetail: TypedContractMethod<
+    [_productId: BigNumberish],
+    [void],
+    "nonpayable"
   >;
-  getFunction(
-    nameOrSignature: "RET"
-  ): TypedContractMethod<
+
+  restockMaterial: TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _quantity: BigNumberish,
+      _vendorId: BigNumberish,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  retailerCtr: TypedContractMethod<[], [bigint], "view">;
+
+  retailers: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, string, string] & {
-        addr: string;
+      [bigint, string, string, string, bigint] & {
         id: bigint;
-        name: string;
-        place: string;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "RMS"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [string, bigint, string, string, string, string, bigint] & {
         addr: string;
-        id: bigint;
         name: string;
-        place: string;
-        contactInfo: string;
-        materialTypes: string;
+        location: string;
         registeredAt: bigint;
       }
     ],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "RMSsupply"
-  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "Retail"
-  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "VendorStats"
-  ): TypedContractMethod<
+
+  showStage: TypedContractMethod<[_productId: BigNumberish], [string], "view">;
+
+  startDistribution: TypedContractMethod<
+    [_productId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  startManufacturing: TypedContractMethod<
+    [_productId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  supplyHistory: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, bigint, bigint, bigint, bigint, boolean] & {
-        totalOrders: bigint;
-        completedOrders: bigint;
-        totalQuantitySupplied: bigint;
-        lastActivityTimestamp: bigint;
-        rating: bigint;
-        isVerified: boolean;
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {
+        id: bigint;
+        materialId: bigint;
+        vendorId: bigint;
+        quantity: bigint;
+        pricePerUnit: bigint;
+        totalAmount: bigint;
+        suppliedAt: bigint;
       }
     ],
     "view"
   >;
+
+  supplyHistoryCtr: TypedContractMethod<[], [bigint], "view">;
+
+  vendorAddMaterial: TypedContractMethod<
+    [
+      _name: string,
+      _category: string,
+      _quantity: BigNumberish,
+      _unit: string,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  vendorCtr: TypedContractMethod<[], [bigint], "view">;
+
+  vendorRestockMaterial: TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _quantity: BigNumberish,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  vendors: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, string, string, bigint, boolean] & {
+        id: bigint;
+        addr: string;
+        name: string;
+        location: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
+        isActive: boolean;
+      }
+    ],
+    "view"
+  >;
+
+  getFunction<T extends ContractMethod = ContractMethod>(
+    key: string | FunctionFragment
+  ): T;
+
+  getFunction(
+    nameOrSignature: "Owner"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "addDistributor"
   ): TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
   getFunction(
     nameOrSignature: "addManufacturer"
   ): TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
@@ -1066,32 +1167,25 @@ export interface SupplyChain extends BaseContract {
       _quantity: BigNumberish,
       _unit: string,
       _pricePerUnit: BigNumberish,
-      _supplierId: BigNumberish
+      _vendorId: BigNumberish
     ],
     [void],
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "addMedicine"
+    nameOrSignature: "addRetailer"
   ): TypedContractMethod<
-    [_name: string, _description: string],
+    [_addr: AddressLike, _name: string, _location: string],
     [void],
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "addProduct"
-  ): TypedContractMethod<
-    [_name: string, _description: string, _quantity: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "addRMS"
+    nameOrSignature: "addVendor"
   ): TypedContractMethod<
     [
-      _address: AddressLike,
+      _addr: AddressLike,
       _name: string,
-      _place: string,
+      _location: string,
       _contactInfo: string,
       _materialTypes: string
     ],
@@ -1099,121 +1193,344 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "addRMSLegacy"
-  ): TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "addRetailer"
-  ): TypedContractMethod<
-    [_address: AddressLike, _name: string, _place: string],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "disCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getMaterialTransactionCount"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getMaterialsForProduct"
-  ): TypedContractMethod<[_productId: BigNumberish], [bigint[]], "view">;
-  getFunction(
-    nameOrSignature: "getProductTimestamps"
-  ): TypedContractMethod<
-    [_productID: BigNumberish],
-    [
-      [bigint, bigint, bigint, bigint, bigint, bigint] & {
-        ordered: bigint;
-        rms: bigint;
-        manufacturing: bigint;
-        distribution: bigint;
-        retail: bigint;
-        sold_time: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getVendorDetails"
-  ): TypedContractMethod<
-    [_vendorId: BigNumberish],
-    [
-      [
-        string,
-        string,
-        string,
-        string,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        boolean
-      ] & {
-        name: string;
-        place: string;
-        contactInfo: string;
-        materialTypes: string;
-        registeredAt: bigint;
-        totalOrders: bigint;
-        completedOrders: bigint;
-        totalQuantitySupplied: bigint;
-        rating: bigint;
-        isVerified: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "manCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "materialCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "productCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "rateVendor"
-  ): TypedContractMethod<
-    [_vendorId: BigNumberish, _rating: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "retCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "rmsCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "showStage"
-  ): TypedContractMethod<[_productID: BigNumberish], [string], "view">;
-  getFunction(
-    nameOrSignature: "sold"
-  ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "transactionCtr"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "useMaterialForProduct"
+    nameOrSignature: "assignMaterialToProduct"
   ): TypedContractMethod<
     [
-      _materialId: BigNumberish,
       _productId: BigNumberish,
+      _materialId: BigNumberish,
       _quantity: BigNumberish
     ],
     [void],
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "verifyVendor"
-  ): TypedContractMethod<[_vendorId: BigNumberish], [void], "nonpayable">;
+    nameOrSignature: "confirmAndStartManufacturing"
+  ): TypedContractMethod<[_productId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "createProduct"
+  ): TypedContractMethod<
+    [_name: string, _description: string, _targetQuantity: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "distributorCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "distributors"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, bigint] & {
+        id: bigint;
+        addr: string;
+        name: string;
+        location: string;
+        registeredAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "findDistributor"
+  ): TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "findManufacturer"
+  ): TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "findRetailer"
+  ): TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "findVendor"
+  ): TypedContractMethod<[_addr: AddressLike], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getMaterial"
+  ): TypedContractMethod<
+    [_materialId: BigNumberish],
+    [SupplyChain.MaterialStructOutput],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getProduct"
+  ): TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductStructOutput],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getProductMaterials"
+  ): TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductMaterialUsageStructOutput[]],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getProductMaterialsCount"
+  ): TypedContractMethod<[_productId: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getProductTimeline"
+  ): TypedContractMethod<
+    [_productId: BigNumberish],
+    [SupplyChain.ProductTimelineStructOutput],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getVendor"
+  ): TypedContractMethod<
+    [_vendorId: BigNumberish],
+    [SupplyChain.VendorStructOutput],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "manufacturerCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "manufacturerSelectMaterial"
+  ): TypedContractMethod<
+    [
+      _productId: BigNumberish,
+      _materialId: BigNumberish,
+      _quantity: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "manufacturers"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, bigint] & {
+        id: bigint;
+        addr: string;
+        name: string;
+        location: string;
+        registeredAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "markAsSold"
+  ): TypedContractMethod<[_productId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "materialCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "materials"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        bigint,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        boolean
+      ] & {
+        id: bigint;
+        name: string;
+        category: string;
+        totalQuantity: bigint;
+        availableQuantity: bigint;
+        unit: string;
+        pricePerUnit: bigint;
+        vendorId: bigint;
+        receivedAt: bigint;
+        isActive: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "productCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "productMaterials"
+  ): TypedContractMethod<
+    [arg0: BigNumberish, arg1: BigNumberish],
+    [
+      [bigint, bigint, bigint] & {
+        materialId: bigint;
+        quantityUsed: bigint;
+        assignedAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "productTimelines"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {
+        createdAt: bigint;
+        materialsAssignedAt: bigint;
+        manufacturingStartedAt: bigint;
+        manufacturingCompletedAt: bigint;
+        distributionStartedAt: bigint;
+        retailReceivedAt: bigint;
+        soldAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "products"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint
+      ] & {
+        id: bigint;
+        name: string;
+        description: string;
+        targetQuantity: bigint;
+        manufacturerId: bigint;
+        distributorId: bigint;
+        retailerId: bigint;
+        stage: bigint;
+        createdAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "receiveAtRetail"
+  ): TypedContractMethod<[_productId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "restockMaterial"
+  ): TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _quantity: BigNumberish,
+      _vendorId: BigNumberish,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "retailerCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "retailers"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, bigint] & {
+        id: bigint;
+        addr: string;
+        name: string;
+        location: string;
+        registeredAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "showStage"
+  ): TypedContractMethod<[_productId: BigNumberish], [string], "view">;
+  getFunction(
+    nameOrSignature: "startDistribution"
+  ): TypedContractMethod<[_productId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "startManufacturing"
+  ): TypedContractMethod<[_productId: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "supplyHistory"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {
+        id: bigint;
+        materialId: bigint;
+        vendorId: bigint;
+        quantity: bigint;
+        pricePerUnit: bigint;
+        totalAmount: bigint;
+        suppliedAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "supplyHistoryCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "vendorAddMaterial"
+  ): TypedContractMethod<
+    [
+      _name: string,
+      _category: string,
+      _quantity: BigNumberish,
+      _unit: string,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "vendorCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "vendorRestockMaterial"
+  ): TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _quantity: BigNumberish,
+      _pricePerUnit: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "vendors"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, string, string, bigint, boolean] & {
+        id: bigint;
+        addr: string;
+        name: string;
+        location: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
+        isActive: boolean;
+      }
+    ],
+    "view"
+  >;
 
+  getEvent(
+    key: "DistributorAdded"
+  ): TypedContractEvent<
+    DistributorAddedEvent.InputTuple,
+    DistributorAddedEvent.OutputTuple,
+    DistributorAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "ManufacturerAdded"
+  ): TypedContractEvent<
+    ManufacturerAddedEvent.InputTuple,
+    ManufacturerAddedEvent.OutputTuple,
+    ManufacturerAddedEvent.OutputObject
+  >;
   getEvent(
     key: "MaterialAdded"
   ): TypedContractEvent<
@@ -1222,25 +1539,32 @@ export interface SupplyChain extends BaseContract {
     MaterialAddedEvent.OutputObject
   >;
   getEvent(
-    key: "MaterialTransactionRecorded"
+    key: "MaterialRestocked"
   ): TypedContractEvent<
-    MaterialTransactionRecordedEvent.InputTuple,
-    MaterialTransactionRecordedEvent.OutputTuple,
-    MaterialTransactionRecordedEvent.OutputObject
+    MaterialRestockedEvent.InputTuple,
+    MaterialRestockedEvent.OutputTuple,
+    MaterialRestockedEvent.OutputObject
   >;
   getEvent(
-    key: "ProductAdded"
+    key: "MaterialsAssignedToProduct"
   ): TypedContractEvent<
-    ProductAddedEvent.InputTuple,
-    ProductAddedEvent.OutputTuple,
-    ProductAddedEvent.OutputObject
+    MaterialsAssignedToProductEvent.InputTuple,
+    MaterialsAssignedToProductEvent.OutputTuple,
+    MaterialsAssignedToProductEvent.OutputObject
   >;
   getEvent(
-    key: "RoleAdded"
+    key: "ProductCreated"
   ): TypedContractEvent<
-    RoleAddedEvent.InputTuple,
-    RoleAddedEvent.OutputTuple,
-    RoleAddedEvent.OutputObject
+    ProductCreatedEvent.InputTuple,
+    ProductCreatedEvent.OutputTuple,
+    ProductCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RetailerAdded"
+  ): TypedContractEvent<
+    RetailerAddedEvent.InputTuple,
+    RetailerAddedEvent.OutputTuple,
+    RetailerAddedEvent.OutputObject
   >;
   getEvent(
     key: "StageUpdated"
@@ -1250,22 +1574,37 @@ export interface SupplyChain extends BaseContract {
     StageUpdatedEvent.OutputObject
   >;
   getEvent(
-    key: "VendorRated"
+    key: "VendorAdded"
   ): TypedContractEvent<
-    VendorRatedEvent.InputTuple,
-    VendorRatedEvent.OutputTuple,
-    VendorRatedEvent.OutputObject
-  >;
-  getEvent(
-    key: "VendorVerified"
-  ): TypedContractEvent<
-    VendorVerifiedEvent.InputTuple,
-    VendorVerifiedEvent.OutputTuple,
-    VendorVerifiedEvent.OutputObject
+    VendorAddedEvent.InputTuple,
+    VendorAddedEvent.OutputTuple,
+    VendorAddedEvent.OutputObject
   >;
 
   filters: {
-    "MaterialAdded(uint256,string,uint256,uint256)": TypedContractEvent<
+    "DistributorAdded(uint256,string,uint256)": TypedContractEvent<
+      DistributorAddedEvent.InputTuple,
+      DistributorAddedEvent.OutputTuple,
+      DistributorAddedEvent.OutputObject
+    >;
+    DistributorAdded: TypedContractEvent<
+      DistributorAddedEvent.InputTuple,
+      DistributorAddedEvent.OutputTuple,
+      DistributorAddedEvent.OutputObject
+    >;
+
+    "ManufacturerAdded(uint256,string,uint256)": TypedContractEvent<
+      ManufacturerAddedEvent.InputTuple,
+      ManufacturerAddedEvent.OutputTuple,
+      ManufacturerAddedEvent.OutputObject
+    >;
+    ManufacturerAdded: TypedContractEvent<
+      ManufacturerAddedEvent.InputTuple,
+      ManufacturerAddedEvent.OutputTuple,
+      ManufacturerAddedEvent.OutputObject
+    >;
+
+    "MaterialAdded(uint256,string,uint256,uint256,uint256)": TypedContractEvent<
       MaterialAddedEvent.InputTuple,
       MaterialAddedEvent.OutputTuple,
       MaterialAddedEvent.OutputObject
@@ -1276,37 +1615,48 @@ export interface SupplyChain extends BaseContract {
       MaterialAddedEvent.OutputObject
     >;
 
-    "MaterialTransactionRecorded(uint256,uint256,uint256,string,uint256)": TypedContractEvent<
-      MaterialTransactionRecordedEvent.InputTuple,
-      MaterialTransactionRecordedEvent.OutputTuple,
-      MaterialTransactionRecordedEvent.OutputObject
+    "MaterialRestocked(uint256,uint256,uint256,uint256)": TypedContractEvent<
+      MaterialRestockedEvent.InputTuple,
+      MaterialRestockedEvent.OutputTuple,
+      MaterialRestockedEvent.OutputObject
     >;
-    MaterialTransactionRecorded: TypedContractEvent<
-      MaterialTransactionRecordedEvent.InputTuple,
-      MaterialTransactionRecordedEvent.OutputTuple,
-      MaterialTransactionRecordedEvent.OutputObject
-    >;
-
-    "ProductAdded(uint256,string,uint256,uint256)": TypedContractEvent<
-      ProductAddedEvent.InputTuple,
-      ProductAddedEvent.OutputTuple,
-      ProductAddedEvent.OutputObject
-    >;
-    ProductAdded: TypedContractEvent<
-      ProductAddedEvent.InputTuple,
-      ProductAddedEvent.OutputTuple,
-      ProductAddedEvent.OutputObject
+    MaterialRestocked: TypedContractEvent<
+      MaterialRestockedEvent.InputTuple,
+      MaterialRestockedEvent.OutputTuple,
+      MaterialRestockedEvent.OutputObject
     >;
 
-    "RoleAdded(string,uint256,address,string)": TypedContractEvent<
-      RoleAddedEvent.InputTuple,
-      RoleAddedEvent.OutputTuple,
-      RoleAddedEvent.OutputObject
+    "MaterialsAssignedToProduct(uint256,uint256,uint256,uint256)": TypedContractEvent<
+      MaterialsAssignedToProductEvent.InputTuple,
+      MaterialsAssignedToProductEvent.OutputTuple,
+      MaterialsAssignedToProductEvent.OutputObject
     >;
-    RoleAdded: TypedContractEvent<
-      RoleAddedEvent.InputTuple,
-      RoleAddedEvent.OutputTuple,
-      RoleAddedEvent.OutputObject
+    MaterialsAssignedToProduct: TypedContractEvent<
+      MaterialsAssignedToProductEvent.InputTuple,
+      MaterialsAssignedToProductEvent.OutputTuple,
+      MaterialsAssignedToProductEvent.OutputObject
+    >;
+
+    "ProductCreated(uint256,string,uint256,uint256)": TypedContractEvent<
+      ProductCreatedEvent.InputTuple,
+      ProductCreatedEvent.OutputTuple,
+      ProductCreatedEvent.OutputObject
+    >;
+    ProductCreated: TypedContractEvent<
+      ProductCreatedEvent.InputTuple,
+      ProductCreatedEvent.OutputTuple,
+      ProductCreatedEvent.OutputObject
+    >;
+
+    "RetailerAdded(uint256,string,uint256)": TypedContractEvent<
+      RetailerAddedEvent.InputTuple,
+      RetailerAddedEvent.OutputTuple,
+      RetailerAddedEvent.OutputObject
+    >;
+    RetailerAdded: TypedContractEvent<
+      RetailerAddedEvent.InputTuple,
+      RetailerAddedEvent.OutputTuple,
+      RetailerAddedEvent.OutputObject
     >;
 
     "StageUpdated(uint256,uint8,address,uint256)": TypedContractEvent<
@@ -1320,26 +1670,15 @@ export interface SupplyChain extends BaseContract {
       StageUpdatedEvent.OutputObject
     >;
 
-    "VendorRated(uint256,uint256,uint256)": TypedContractEvent<
-      VendorRatedEvent.InputTuple,
-      VendorRatedEvent.OutputTuple,
-      VendorRatedEvent.OutputObject
+    "VendorAdded(uint256,string,uint256)": TypedContractEvent<
+      VendorAddedEvent.InputTuple,
+      VendorAddedEvent.OutputTuple,
+      VendorAddedEvent.OutputObject
     >;
-    VendorRated: TypedContractEvent<
-      VendorRatedEvent.InputTuple,
-      VendorRatedEvent.OutputTuple,
-      VendorRatedEvent.OutputObject
-    >;
-
-    "VendorVerified(uint256,uint256)": TypedContractEvent<
-      VendorVerifiedEvent.InputTuple,
-      VendorVerifiedEvent.OutputTuple,
-      VendorVerifiedEvent.OutputObject
-    >;
-    VendorVerified: TypedContractEvent<
-      VendorVerifiedEvent.InputTuple,
-      VendorVerifiedEvent.OutputTuple,
-      VendorVerifiedEvent.OutputObject
+    VendorAdded: TypedContractEvent<
+      VendorAddedEvent.InputTuple,
+      VendorAddedEvent.OutputTuple,
+      VendorAddedEvent.OutputObject
     >;
   };
 }

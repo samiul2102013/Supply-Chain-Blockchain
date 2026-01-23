@@ -3,39 +3,68 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadWeb3, getContract } from '@/lib/web3'
-import { checkIsOwner, getContractOwner } from '@/lib/contractUtils'
+import { checkIsOwner } from '@/lib/contractUtils'
 
-interface Medicine {
+interface Material {
+  id: string
+  name: string
+  category: string
+  totalQuantity: string
+  availableQuantity: string
+  unit: string
+  pricePerUnit: string
+  vendorId: string
+}
+
+interface Product {
   id: string
   name: string
   description: string
-  quantity: string
-  RMSid: string
-  MANid: string
-  DISid: string
-  RETid: string
+  targetQuantity: string
+  manufacturerId: string
+  distributorId: string
+  retailerId: string
   stage: string
+  createdAt: string
 }
 
-export default function AddMed() {
+interface ProductMaterialUsage {
+  materialId: string
+  quantityUsed: string
+  assignedAt: string
+}
+
+interface Vendor {
+  id: string
+  name: string
+}
+
+export default function ProductsPage() {
   const router = useRouter()
   const [currentAccount, setCurrentAccount] = useState('')
-  const [loader, setLoader] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [supplyChain, setSupplyChain] = useState<any>(null)
-  const [med, setMed] = useState<{ [key: number]: Medicine }>({})
-  const [medName, setMedName] = useState('')
-  const [medDes, setMedDes] = useState('')
-  const [medQuantity, setMedQuantity] = useState('')
-  const [medStage, setMedStage] = useState<string[]>([])
   const [isOwner, setIsOwner] = useState(false)
-  const [contractOwner, setContractOwner] = useState<string>('')
-  const [roleCounts, setRoleCounts] = useState({
-    rms: 0,
-    man: 0,
-    dis: 0,
-    ret: 0,
+  const [activeTab, setActiveTab] = useState<'products' | 'create' | 'assign'>('products')
+  
+  const [products, setProducts] = useState<Product[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [productMaterials, setProductMaterials] = useState<{[key: string]: ProductMaterialUsage[]}>({})
+
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    targetQuantity: ''
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [assignForm, setAssignForm] = useState({
+    productId: '',
+    materialId: '',
+    quantity: ''
+  })
+
+  const [selectedProductForView, setSelectedProductForView] = useState<string | null>(null)
 
   useEffect(() => {
     loadWeb3()
@@ -44,449 +73,451 @@ export default function AddMed() {
 
   const loadBlockchainData = async () => {
     try {
-      setLoader(true)
+      setLoading(true)
       const { contract, account } = await getContract()
       setSupplyChain(contract)
       setCurrentAccount(account)
 
-      const medCtr = await contract.methods.productCtr().call()
-      const medData: { [key: number]: Medicine } = {}
-      const medStageData: string[] = []
-
-      for (let i = 0; i < medCtr; i++) {
-        medData[i] = await contract.methods.ProductStock(i + 1).call()
-        medStageData[i] = await contract.methods.showStage(i + 1).call()
+      // Load vendors
+      const vendorCount = await contract.methods.vendorCtr().call()
+      const vendorPromises = []
+      for (let i = 1; i <= parseInt(vendorCount); i++) {
+        vendorPromises.push(contract.methods.vendors(i).call())
       }
+      const vendorData = await Promise.all(vendorPromises)
+      setVendors(vendorData)
 
-      setMed(medData)
-      setMedStage(medStageData)
-      
-      // Check role counts
-      const rmsCount = await contract.methods.rmsCtr().call()
-      const manCount = await contract.methods.manCtr().call()
-      const disCount = await contract.methods.disCtr().call()
-      const retCount = await contract.methods.retCtr().call()
-      
-      setRoleCounts({
-        rms: parseInt(rmsCount),
-        man: parseInt(manCount),
-        dis: parseInt(disCount),
-        ret: parseInt(retCount),
-      })
-      
-      // Check if current account is the owner
-      const ownerStatus = await checkIsOwner()
-      setIsOwner(ownerStatus)
-      const owner = await getContractOwner()
-      if (owner) setContractOwner(owner)
-      
-      setLoader(false)
-    } catch (err: any) {
-      const errorMessage = err?.message || 'The smart contract is not deployed to the current network'
-      console.error('Error loading blockchain data:', err)
-      alert(errorMessage)
-      setLoader(false)
-    }
-  }
-
-  const handlerChangeNameMED = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setMedName(event.target.value)
-  }
-
-  const handlerChangeDesMED = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setMedDes(event.target.value)
-  }
-
-  const handlerChangeQuantityMED = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setMedQuantity(event.target.value)
-  }
-
-  const handlerSubmitMED = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setIsSubmitting(true)
-    try {
-      const quantity = parseInt(medQuantity) || 1
-      const receipt = await supplyChain.methods.addProduct(medName, medDes, quantity).send({ from: currentAccount })
-      if (receipt) {
-        loadBlockchainData()
-        setMedName('')
-        setMedDes('')
-        setMedQuantity('')
-        alert('Material order created successfully!')
+      // Load materials
+      const materialCount = await contract.methods.materialCtr().call()
+      const materialPromises = []
+      for (let i = 1; i <= parseInt(materialCount); i++) {
+        materialPromises.push(contract.methods.materials(i).call())
       }
-    } catch (err: any) {
-      let errorMessage = 'An error occurred!'
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message
+      const materialData = await Promise.all(materialPromises)
+      setMaterials(materialData)
+
+      // Load products
+      const productCount = await contract.methods.productCtr().call()
+      const productPromises = []
+      for (let i = 1; i <= parseInt(productCount); i++) {
+        productPromises.push(contract.methods.products(i).call())
       }
-      
-      // Check for common revert reasons
-      if (errorMessage.includes('revert') || errorMessage.includes('require')) {
-        if (errorMessage.includes('Owner')) {
-          errorMessage = 'Only the contract owner can add materials. Make sure you are using the account that deployed the contract.'
-        } else if (errorMessage.includes('rmsCtr') || errorMessage.includes('manCtr') || errorMessage.includes('disCtr') || errorMessage.includes('retCtr')) {
-          errorMessage = 'Please register at least one role of each type (RMS, Manufacturer, Distributor, Retailer) before adding materials.'
+      const productData = await Promise.all(productPromises)
+      setProducts(productData)
+
+      // Load product materials for each product
+      const prodMaterials: {[key: string]: ProductMaterialUsage[]} = {}
+      for (let i = 1; i <= parseInt(productCount); i++) {
+        const count = await contract.methods.getProductMaterialsCount(i).call()
+        if (parseInt(count) > 0) {
+          const mats = await contract.methods.getProductMaterials(i).call()
+          prodMaterials[i.toString()] = mats
         } else {
-          errorMessage = `Transaction failed: ${errorMessage}`
+          prodMaterials[i.toString()] = []
         }
       }
+      setProductMaterials(prodMaterials)
+
+      const ownerStatus = await checkIsOwner()
+      setIsOwner(ownerStatus)
       
-      console.error('Transaction error:', err)
-      alert(errorMessage)
-    } finally {
-      setIsSubmitting(false)
+      setLoading(false)
+    } catch (err: any) {
+      console.error('Error:', err)
+      alert(err?.message || 'Error loading data')
+      setLoading(false)
     }
+  }
+
+  const createProduct = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !isOwner) return
+
+    try {
+      await supplyChain.methods.createProduct(
+        newProduct.name,
+        newProduct.description,
+        parseInt(newProduct.targetQuantity)
+      ).send({ from: currentAccount })
+      
+      setNewProduct({ name: '', description: '', targetQuantity: '' })
+      loadBlockchainData()
+      alert('Product created successfully! Now assign materials to it.')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error creating product')
+    }
+  }
+
+  const assignMaterial = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!supplyChain || !isOwner) return
+
+    try {
+      const material = materials.find(m => m.id === assignForm.materialId)
+      if (material && parseInt(assignForm.quantity) > parseInt(material.availableQuantity)) {
+        alert(`Not enough ${material.name} available. Only ${material.availableQuantity} ${material.unit} in stock.`)
+        return
+      }
+
+      await supplyChain.methods.assignMaterialToProduct(
+        parseInt(assignForm.productId),
+        parseInt(assignForm.materialId),
+        parseInt(assignForm.quantity)
+      ).send({ from: currentAccount })
+      
+      setAssignForm({ productId: '', materialId: '', quantity: '' })
+      loadBlockchainData()
+      alert('Material assigned to product successfully!')
+    } catch (err: any) {
+      console.error(err)
+      alert(err?.message || 'Error assigning material')
+    }
+  }
+
+  const getStageText = (stage: string) => {
+    const stages = [
+      'Init - Awaiting Materials',
+      'Materials Assigned',
+      'Manufacturing',
+      'Distribution',
+      'Retail',
+      'Sold'
+    ]
+    return stages[parseInt(stage)] || 'Unknown'
   }
 
   const getStageColor = (stage: string) => {
-    if (stage.includes('Ordered')) return 'bg-blue-100 text-blue-700 border-blue-300'
-    if (stage.includes('Raw Material')) return 'bg-green-100 text-green-700 border-green-300'
-    if (stage.includes('Manufacturing')) return 'bg-yellow-100 text-yellow-700 border-yellow-300'
-    if (stage.includes('Distribution')) return 'bg-purple-100 text-purple-700 border-purple-300'
-    if (stage.includes('Retail')) return 'bg-orange-100 text-orange-700 border-orange-300'
-    if (stage.includes('Sold')) return 'bg-gray-100 text-gray-700 border-gray-300'
-    return 'bg-gray-100 text-gray-700 border-gray-300'
+    const colors = ['bg-gray-600', 'bg-blue-600', 'bg-yellow-600', 'bg-purple-600', 'bg-green-600', 'bg-emerald-600']
+    return colors[parseInt(stage)] || 'bg-gray-600'
   }
 
-  if (loader) {
+  const getMaterialName = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId)
+    return material ? material.name : 'Unknown'
+  }
+
+  const getMaterialUnit = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId)
+    return material ? material.unit : ''
+  }
+
+  const getVendorName = (vendorId: string) => {
+    const vendor = vendors.find(v => v.id === vendorId)
+    return vendor ? vendor.name : 'Unknown'
+  }
+
+  const formatDate = (timestamp: string) => {
+    if (!timestamp || timestamp === '0') return 'N/A'
+    return new Date(parseInt(timestamp) * 1000).toLocaleString()
+  }
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <h1 className="text-2xl font-bold text-gray-700">Loading...</h1>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-5">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Order Materials</h1>
-                <p className="text-gray-600 text-sm">Create new material orders in the supply chain</p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              HOME
-            </button>
+    <div className="min-h-screen bg-gray-900 text-white py-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">🏭 Products & Orders</h1>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+          >
+            ← Back to Home
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Total Products</p>
+            <p className="text-2xl font-bold">{products.length}</p>
           </div>
-          <div className="text-xs text-gray-500 font-mono bg-gray-50 p-2 rounded-lg">
-            <span className="font-semibold">Account:</span> {currentAccount}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Awaiting Materials</p>
+            <p className="text-2xl font-bold text-yellow-500">{products.filter(p => p.stage === '0').length}</p>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">In Manufacturing</p>
+            <p className="text-2xl font-bold text-blue-500">{products.filter(p => p.stage === '2').length}</p>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <p className="text-gray-400">Available Materials</p>
+            <p className="text-2xl font-bold">{materials.length}</p>
           </div>
         </div>
 
-        {/* Warning Messages */}
-        {!isOwner && (
-          <div className="mb-6 p-5 bg-red-50 border-l-4 border-red-500 rounded-xl shadow-lg">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div className="ml-3 flex-1">
-                <h3 className="text-red-800 font-bold mb-2">Access Restricted</h3>
-                <p className="text-red-700 text-sm mb-2">
-                  Only the contract owner can create material orders.
-                </p>
-                <div className="mt-3 space-y-1 text-xs">
-                  <p className="text-red-600">
-                    <span className="font-semibold">Contract Owner:</span> {contractOwner || 'Loading...'}
-                  </p>
-                  <p className="text-red-600">
-                    <span className="font-semibold">Your Account:</span> {currentAccount}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Role Requirements Check */}
-        {isOwner && (roleCounts.rms === 0 || roleCounts.man === 0 || roleCounts.dis === 0 || roleCounts.ret === 0) && (
-          <div className="mb-6 p-5 bg-yellow-50 border-l-4 border-yellow-500 rounded-xl shadow-lg">
-            <div className="flex items-start mb-4">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div className="ml-3 flex-1">
-                <h3 className="text-yellow-800 font-bold mb-2">Requirements Not Met</h3>
-                <p className="text-yellow-700 text-sm">
-                  You must register at least one role of each type before ordering materials.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              <div className={`p-3 rounded-lg border-2 ${roleCounts.rms > 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className="flex items-center mb-2">
-                  <svg className={`w-5 h-5 mr-2 ${roleCounts.rms > 0 ? 'text-green-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {roleCounts.rms > 0 ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <div className="text-xs font-semibold">Raw Material Supplier</div>
-                </div>
-                <div className={`text-lg font-bold ${roleCounts.rms > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {roleCounts.rms} registered
-                </div>
-              </div>
-              <div className={`p-3 rounded-lg border-2 ${roleCounts.man > 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className="flex items-center mb-2">
-                  <svg className={`w-5 h-5 mr-2 ${roleCounts.man > 0 ? 'text-green-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {roleCounts.man > 0 ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <div className="text-xs font-semibold">Manufacturer</div>
-                </div>
-                <div className={`text-lg font-bold ${roleCounts.man > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {roleCounts.man} registered
-                </div>
-              </div>
-              <div className={`p-3 rounded-lg border-2 ${roleCounts.dis > 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className="flex items-center mb-2">
-                  <svg className={`w-5 h-5 mr-2 ${roleCounts.dis > 0 ? 'text-green-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {roleCounts.dis > 0 ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <div className="text-xs font-semibold">Distributor</div>
-                </div>
-                <div className={`text-lg font-bold ${roleCounts.dis > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {roleCounts.dis} registered
-                </div>
-              </div>
-              <div className={`p-3 rounded-lg border-2 ${roleCounts.ret > 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className="flex items-center mb-2">
-                  <svg className={`w-5 h-5 mr-2 ${roleCounts.ret > 0 ? 'text-green-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {roleCounts.ret > 0 ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <div className="text-xs font-semibold">Retailer</div>
-                </div>
-                <div className={`text-lg font-bold ${roleCounts.ret > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {roleCounts.ret} registered
-                </div>
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="flex space-x-4 mb-6 overflow-x-auto">
+          {(['products', 'create', 'assign'] as const).map((tab) => (
             <button
-              onClick={() => router.push('/roles')}
-              className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-semibold flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-              Go to Register Roles
-            </button>
-          </div>
-        )}
-        
-        {/* Order Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">Create New Material Order</h2>
-          </div>
-          
-          <form onSubmit={handlerSubmitMED} className="space-y-5">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-              </div>
-              <input
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-lg"
-                type="text"
-                onChange={handlerChangeNameMED}
-                placeholder="Material Name"
-                value={medName}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-            
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <input
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-lg"
-                type="text"
-                onChange={handlerChangeDesMED}
-                placeholder="Material Description"
-                value={medDes}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                </svg>
-              </div>
-              <input
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-lg"
-                type="number"
-                min="1"
-                onChange={handlerChangeQuantityMED}
-                placeholder="Quantity"
-                value={medQuantity}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-            
-            <button
-              type="submit"
-              disabled={!isOwner || roleCounts.rms === 0 || roleCounts.man === 0 || roleCounts.dis === 0 || roleCounts.ret === 0 || isSubmitting}
-              className={`w-full px-6 py-4 rounded-xl transition-all font-semibold text-lg flex items-center justify-center shadow-lg ${
-                isOwner && roleCounts.rms > 0 && roleCounts.man > 0 && roleCounts.dis > 0 && roleCounts.ret > 0 && !isSubmitting
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 hover:shadow-xl transform hover:scale-105'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-lg font-semibold capitalize transition-colors whitespace-nowrap ${
+                activeTab === tab
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : !isOwner ? (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Only Owner Can Order
-                </>
-              ) : roleCounts.rms === 0 || roleCounts.man === 0 || roleCounts.dis === 0 || roleCounts.ret === 0 ? (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  Register All Roles First
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Create Order
-                </>
-              )}
+              {tab === 'create' ? 'Create Product' : tab === 'assign' ? 'Assign Materials' : 'All Products'}
             </button>
-          </form>
+          ))}
         </div>
 
-        {/* Ordered Materials Table */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+        {/* Products List Tab */}
+        {activeTab === 'products' && (
+          <div className="space-y-4">
+            {products.length === 0 ? (
+              <div className="bg-gray-800 rounded-lg p-6 text-center">
+                <p className="text-gray-400 mb-4">No products created yet.</p>
+                {isOwner && (
+                  <button
+                    onClick={() => setActiveTab('create')}
+                    className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg"
+                  >
+                    Create First Product
+                  </button>
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">Ordered Materials</h2>
-            </div>
-            <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold text-sm">
-              Total: {Object.keys(med).length} items
+            ) : (
+              products.map((product) => (
+                <div key={product.id} className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">{product.name}</h3>
+                      <p className="text-gray-400">{product.description}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStageColor(product.stage)}`}>
+                      {getStageText(product.stage)}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                    <div>
+                      <p className="text-gray-400">Product ID</p>
+                      <p className="font-semibold">{product.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Target Quantity</p>
+                      <p className="font-semibold">{product.targetQuantity}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Created</p>
+                      <p className="font-semibold">{formatDate(product.createdAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">Materials Assigned</p>
+                      <p className="font-semibold">{productMaterials[product.id]?.length || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Show assigned materials */}
+                  {productMaterials[product.id] && productMaterials[product.id].length > 0 && (
+                    <div className="mt-4 border-t border-gray-700 pt-4">
+                      <button
+                        onClick={() => setSelectedProductForView(selectedProductForView === product.id ? null : product.id)}
+                        className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2"
+                      >
+                        {selectedProductForView === product.id ? '▼ Hide' : '▶ Show'} Assigned Materials
+                      </button>
+                      
+                      {selectedProductForView === product.id && (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-600">
+                                <th className="px-3 py-2 text-left">Material</th>
+                                <th className="px-3 py-2 text-left">Quantity Used</th>
+                                <th className="px-3 py-2 text-left">Vendor</th>
+                                <th className="px-3 py-2 text-left">Assigned At</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {productMaterials[product.id].map((pm, idx) => {
+                                const mat = materials.find(m => m.id === pm.materialId)
+                                return (
+                                  <tr key={idx} className="border-b border-gray-700">
+                                    <td className="px-3 py-2">{getMaterialName(pm.materialId)}</td>
+                                    <td className="px-3 py-2">{pm.quantityUsed} {getMaterialUnit(pm.materialId)}</td>
+                                    <td className="px-3 py-2">{mat ? getVendorName(mat.vendorId) : 'N/A'}</td>
+                                    <td className="px-3 py-2">{formatDate(pm.assignedAt)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Create Product Tab */}
+        {activeTab === 'create' && isOwner && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">Create New Product</h2>
+            <form onSubmit={createProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Product Name"
+                value={newProduct.name}
+                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                className="bg-gray-700 rounded-lg px-4 py-2 text-white md:col-span-2"
+                required
+              />
+              <textarea
+                placeholder="Description"
+                value={newProduct.description}
+                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                className="bg-gray-700 rounded-lg px-4 py-2 text-white md:col-span-2"
+                rows={3}
+                required
+              />
+              <input
+                type="number"
+                placeholder="Target Quantity"
+                value={newProduct.targetQuantity}
+                onChange={(e) => setNewProduct({...newProduct, targetQuantity: e.target.value})}
+                className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                min="1"
+                required
+              />
+              <button
+                type="submit"
+                className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded-lg font-semibold"
+              >
+                Create Product
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Assign Materials Tab */}
+        {activeTab === 'assign' && isOwner && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold mb-4">Assign Materials to Product</h2>
+            
+            {products.filter(p => p.stage === '0' || p.stage === '1').length === 0 ? (
+              <div className="text-yellow-400">
+                ⚠️ No products available for material assignment. Products must be in &quot;Init&quot; or &quot;Materials Assigned&quot; stage.
+              </div>
+            ) : materials.length === 0 ? (
+              <div className="text-yellow-400">
+                ⚠️ No materials available. Please add materials first.
+                <button
+                  onClick={() => router.push('/materials')}
+                  className="ml-4 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg"
+                >
+                  Go to Materials
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={assignMaterial} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <select
+                    value={assignForm.productId}
+                    onChange={(e) => setAssignForm({...assignForm, productId: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    required
+                  >
+                    <option value="">Select Product</option>
+                    {products.filter(p => p.stage === '0' || p.stage === '1').map((p) => (
+                      <option key={p.id} value={p.id}>
+                        #{p.id} - {p.name} ({getStageText(p.stage)})
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={assignForm.materialId}
+                    onChange={(e) => setAssignForm({...assignForm, materialId: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    required
+                  >
+                    <option value="">Select Material</option>
+                    {materials.filter(m => parseInt(m.availableQuantity) > 0).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} (Available: {m.availableQuantity} {m.unit})
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <input
+                    type="number"
+                    placeholder="Quantity to Use"
+                    value={assignForm.quantity}
+                    onChange={(e) => setAssignForm({...assignForm, quantity: e.target.value})}
+                    className="bg-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="1"
+                    required
+                  />
+                </div>
+                
+                {assignForm.materialId && (
+                  <div className="text-sm text-gray-400">
+                    Available: {materials.find(m => m.id === assignForm.materialId)?.availableQuantity || 0} {getMaterialUnit(assignForm.materialId)}
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-semibold"
+                >
+                  Assign Material to Product
+                </button>
+              </form>
+            )}
+
+            {/* Quick view of available materials */}
+            <div className="mt-8 border-t border-gray-700 pt-4">
+              <h3 className="text-lg font-semibold mb-4">Available Materials</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="px-3 py-2 text-left">ID</th>
+                      <th className="px-3 py-2 text-left">Material</th>
+                      <th className="px-3 py-2 text-left">Category</th>
+                      <th className="px-3 py-2 text-left">Available</th>
+                      <th className="px-3 py-2 text-left">Vendor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materials.map((m) => (
+                      <tr key={m.id} className="border-b border-gray-700">
+                        <td className="px-3 py-2">{m.id}</td>
+                        <td className="px-3 py-2">{m.name}</td>
+                        <td className="px-3 py-2">{m.category}</td>
+                        <td className={`px-3 py-2 ${parseInt(m.availableQuantity) < 10 ? 'text-yellow-500' : 'text-green-500'}`}>
+                          {m.availableQuantity} {m.unit}
+                        </td>
+                        <td className="px-3 py-2">{getVendorName(m.vendorId)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          
-          {Object.keys(med).length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="text-gray-500 text-lg font-semibold">No materials ordered yet</p>
-              <p className="text-gray-400 text-sm mt-2">Create your first material order above</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-green-50 to-emerald-50">
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">ID</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Name</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Description</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Quantity</th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Current Stage</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {Object.keys(med).map((key) => {
-                    const index = parseInt(key)
-                    const stage = medStage[index]
-                    return (
-                      <tr key={key} className="hover:bg-green-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold mr-3 shadow-md">
-                              {med[index].id}
-                            </div>
-                            <span className="font-semibold text-gray-800">{med[index].id}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-800">{med[index].name}</td>
-                        <td className="px-6 py-4 text-gray-600">{med[index].description}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-100 text-blue-700 border-blue-300">
-                            {med[index].quantity}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStageColor(stage)}`}>
-                            {stage}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        )}
+
+        {!isOwner && (activeTab === 'create' || activeTab === 'assign') && (
+          <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4">
+            <p className="text-yellow-300">
+              ⚠️ Only the contract owner can create products and assign materials.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
