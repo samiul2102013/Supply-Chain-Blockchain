@@ -8,6 +8,7 @@ import type {
   FunctionFragment,
   Result,
   Interface,
+  EventFragment,
   AddressLike,
   ContractRunner,
   ContractMethod,
@@ -17,6 +18,7 @@ import type {
   TypedContractEvent,
   TypedDeferredTopicFilter,
   TypedEventLog,
+  TypedLogDescription,
   TypedListener,
   TypedContractMethod,
 } from "./common";
@@ -30,16 +32,19 @@ export interface SupplyChainInterface extends Interface {
       | "Manufacturing"
       | "Owner"
       | "ProductStock"
+      | "ProductTimestamps"
       | "RET"
       | "RMS"
       | "RMSsupply"
       | "Retail"
       | "addDistributor"
       | "addManufacturer"
+      | "addMedicine"
       | "addProduct"
       | "addRMS"
       | "addRetailer"
       | "disCtr"
+      | "getProductTimestamps"
       | "manCtr"
       | "productCtr"
       | "retCtr"
@@ -47,6 +52,10 @@ export interface SupplyChainInterface extends Interface {
       | "showStage"
       | "sold"
   ): FunctionFragment;
+
+  getEvent(
+    nameOrSignatureOrTopic: "ProductAdded" | "RoleAdded" | "StageUpdated"
+  ): EventFragment;
 
   encodeFunctionData(functionFragment: "DIS", values: [BigNumberish]): string;
   encodeFunctionData(
@@ -61,6 +70,10 @@ export interface SupplyChainInterface extends Interface {
   encodeFunctionData(functionFragment: "Owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "ProductStock",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "ProductTimestamps",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "RET", values: [BigNumberish]): string;
@@ -82,8 +95,12 @@ export interface SupplyChainInterface extends Interface {
     values: [AddressLike, string, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "addProduct",
+    functionFragment: "addMedicine",
     values: [string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addProduct",
+    values: [string, string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "addRMS",
@@ -94,6 +111,10 @@ export interface SupplyChainInterface extends Interface {
     values: [AddressLike, string, string]
   ): string;
   encodeFunctionData(functionFragment: "disCtr", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "getProductTimestamps",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "manCtr", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "productCtr",
@@ -119,6 +140,10 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "ProductStock",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "ProductTimestamps",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "RET", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "RMS", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "RMSsupply", data: BytesLike): Result;
@@ -131,6 +156,10 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "addManufacturer",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "addMedicine",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "addProduct", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "addRMS", data: BytesLike): Result;
   decodeFunctionResult(
@@ -138,12 +167,91 @@ export interface SupplyChainInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "disCtr", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getProductTimestamps",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "manCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "productCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "retCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rmsCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "showStage", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sold", data: BytesLike): Result;
+}
+
+export namespace ProductAddedEvent {
+  export type InputTuple = [
+    productId: BigNumberish,
+    name: string,
+    quantity: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    productId: bigint,
+    name: string,
+    quantity: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    productId: bigint;
+    name: string;
+    quantity: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleAddedEvent {
+  export type InputTuple = [
+    roleType: string,
+    roleId: BigNumberish,
+    addr: AddressLike,
+    name: string
+  ];
+  export type OutputTuple = [
+    roleType: string,
+    roleId: bigint,
+    addr: string,
+    name: string
+  ];
+  export interface OutputObject {
+    roleType: string;
+    roleId: bigint;
+    addr: string;
+    name: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace StageUpdatedEvent {
+  export type InputTuple = [
+    productId: BigNumberish,
+    stage: BigNumberish,
+    actor: AddressLike,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    productId: bigint,
+    stage: bigint,
+    actor: string,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    productId: bigint;
+    stage: bigint;
+    actor: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export interface SupplyChain extends BaseContract {
@@ -232,15 +340,41 @@ export interface SupplyChain extends BaseContract {
   ProductStock: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, string, string, bigint, bigint, bigint, bigint, bigint] & {
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint
+      ] & {
         id: bigint;
         name: string;
         description: string;
+        quantity: bigint;
         RMSid: bigint;
         MANid: bigint;
         DISid: bigint;
         RETid: bigint;
         stage: bigint;
+      }
+    ],
+    "view"
+  >;
+
+  ProductTimestamps: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint] & {
+        orderedTimestamp: bigint;
+        rmsTimestamp: bigint;
+        manufacturingTimestamp: bigint;
+        distributionTimestamp: bigint;
+        retailTimestamp: bigint;
+        soldTimestamp: bigint;
       }
     ],
     "view"
@@ -292,8 +426,14 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
 
-  addProduct: TypedContractMethod<
+  addMedicine: TypedContractMethod<
     [_name: string, _description: string],
+    [void],
+    "nonpayable"
+  >;
+
+  addProduct: TypedContractMethod<
+    [_name: string, _description: string, _quantity: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -311,6 +451,21 @@ export interface SupplyChain extends BaseContract {
   >;
 
   disCtr: TypedContractMethod<[], [bigint], "view">;
+
+  getProductTimestamps: TypedContractMethod<
+    [_productID: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint] & {
+        ordered: bigint;
+        rms: bigint;
+        manufacturing: bigint;
+        distribution: bigint;
+        retail: bigint;
+        sold_time: bigint;
+      }
+    ],
+    "view"
+  >;
 
   manCtr: TypedContractMethod<[], [bigint], "view">;
 
@@ -370,15 +525,42 @@ export interface SupplyChain extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, string, string, bigint, bigint, bigint, bigint, bigint] & {
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint
+      ] & {
         id: bigint;
         name: string;
         description: string;
+        quantity: bigint;
         RMSid: bigint;
         MANid: bigint;
         DISid: bigint;
         RETid: bigint;
         stage: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "ProductTimestamps"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint] & {
+        orderedTimestamp: bigint;
+        rmsTimestamp: bigint;
+        manufacturingTimestamp: bigint;
+        distributionTimestamp: bigint;
+        retailTimestamp: bigint;
+        soldTimestamp: bigint;
       }
     ],
     "view"
@@ -432,9 +614,16 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "addProduct"
+    nameOrSignature: "addMedicine"
   ): TypedContractMethod<
     [_name: string, _description: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "addProduct"
+  ): TypedContractMethod<
+    [_name: string, _description: string, _quantity: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -456,6 +645,22 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "disCtr"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
+    nameOrSignature: "getProductTimestamps"
+  ): TypedContractMethod<
+    [_productID: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint] & {
+        ordered: bigint;
+        rms: bigint;
+        manufacturing: bigint;
+        distribution: bigint;
+        retail: bigint;
+        sold_time: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "manCtr"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -474,5 +679,60 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "sold"
   ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
 
-  filters: {};
+  getEvent(
+    key: "ProductAdded"
+  ): TypedContractEvent<
+    ProductAddedEvent.InputTuple,
+    ProductAddedEvent.OutputTuple,
+    ProductAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleAdded"
+  ): TypedContractEvent<
+    RoleAddedEvent.InputTuple,
+    RoleAddedEvent.OutputTuple,
+    RoleAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "StageUpdated"
+  ): TypedContractEvent<
+    StageUpdatedEvent.InputTuple,
+    StageUpdatedEvent.OutputTuple,
+    StageUpdatedEvent.OutputObject
+  >;
+
+  filters: {
+    "ProductAdded(uint256,string,uint256,uint256)": TypedContractEvent<
+      ProductAddedEvent.InputTuple,
+      ProductAddedEvent.OutputTuple,
+      ProductAddedEvent.OutputObject
+    >;
+    ProductAdded: TypedContractEvent<
+      ProductAddedEvent.InputTuple,
+      ProductAddedEvent.OutputTuple,
+      ProductAddedEvent.OutputObject
+    >;
+
+    "RoleAdded(string,uint256,address,string)": TypedContractEvent<
+      RoleAddedEvent.InputTuple,
+      RoleAddedEvent.OutputTuple,
+      RoleAddedEvent.OutputObject
+    >;
+    RoleAdded: TypedContractEvent<
+      RoleAddedEvent.InputTuple,
+      RoleAddedEvent.OutputTuple,
+      RoleAddedEvent.OutputObject
+    >;
+
+    "StageUpdated(uint256,uint8,address,uint256)": TypedContractEvent<
+      StageUpdatedEvent.InputTuple,
+      StageUpdatedEvent.OutputTuple,
+      StageUpdatedEvent.OutputObject
+    >;
+    StageUpdated: TypedContractEvent<
+      StageUpdatedEvent.InputTuple,
+      StageUpdatedEvent.OutputTuple,
+      StageUpdatedEvent.OutputObject
+    >;
+  };
 }

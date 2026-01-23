@@ -9,6 +9,7 @@ interface Medicine {
   id: string
   name: string
   description: string
+  quantity: string
   RMSid: string
   MANid: string
   DISid: string
@@ -24,6 +25,7 @@ export default function AddMed() {
   const [med, setMed] = useState<{ [key: number]: Medicine }>({})
   const [medName, setMedName] = useState('')
   const [medDes, setMedDes] = useState('')
+  const [medQuantity, setMedQuantity] = useState('')
   const [medStage, setMedStage] = useState<string[]>([])
   const [isOwner, setIsOwner] = useState(false)
   const [contractOwner, setContractOwner] = useState<string>('')
@@ -47,12 +49,12 @@ export default function AddMed() {
       setSupplyChain(contract)
       setCurrentAccount(account)
 
-      const medCtr = await contract.methods.medicineCtr().call()
+      const medCtr = await contract.methods.productCtr().call()
       const medData: { [key: number]: Medicine } = {}
       const medStageData: string[] = []
 
       for (let i = 0; i < medCtr; i++) {
-        medData[i] = await contract.methods.MedicineStock(i + 1).call()
+        medData[i] = await contract.methods.ProductStock(i + 1).call()
         medStageData[i] = await contract.methods.showStage(i + 1).call()
       }
 
@@ -95,15 +97,21 @@ export default function AddMed() {
     setMedDes(event.target.value)
   }
 
+  const handlerChangeQuantityMED = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setMedQuantity(event.target.value)
+  }
+
   const handlerSubmitMED = async (event: React.FormEvent) => {
     event.preventDefault()
     setIsSubmitting(true)
     try {
-      const receipt = await supplyChain.methods.addMedicine(medName, medDes).send({ from: currentAccount })
+      const quantity = parseInt(medQuantity) || 1
+      const receipt = await supplyChain.methods.addProduct(medName, medDes, quantity).send({ from: currentAccount })
       if (receipt) {
         loadBlockchainData()
         setMedName('')
         setMedDes('')
+        setMedQuantity('')
         alert('Material order created successfully!')
       }
     } catch (err: any) {
@@ -347,6 +355,24 @@ export default function AddMed() {
                 disabled={isSubmitting}
               />
             </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                </svg>
+              </div>
+              <input
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-lg"
+                type="number"
+                min="1"
+                onChange={handlerChangeQuantityMED}
+                placeholder="Quantity"
+                value={medQuantity}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
             
             <button
               type="submit"
@@ -423,6 +449,7 @@ export default function AddMed() {
                     <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">ID</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Name</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Description</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Quantity</th>
                     <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Current Stage</th>
                   </tr>
                 </thead>
@@ -442,6 +469,11 @@ export default function AddMed() {
                         </td>
                         <td className="px-6 py-4 font-medium text-gray-800">{med[index].name}</td>
                         <td className="px-6 py-4 text-gray-600">{med[index].description}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-100 text-blue-700 border-blue-300">
+                            {med[index].quantity}
+                          </span>
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStageColor(stage)}`}>
                             {stage}

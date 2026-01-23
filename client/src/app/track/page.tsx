@@ -9,6 +9,7 @@ interface Medicine {
   id: string
   name: string
   description: string
+  quantity: string
   RMSid: string
   MANid: string
   DISid: string
@@ -23,6 +24,15 @@ interface Role {
   place: string
 }
 
+interface ProductTimestamps {
+  ordered: string
+  rms: string
+  manufacturing: string
+  distribution: string
+  retail: string
+  sold_time: string
+}
+
 export default function Track() {
   const router = useRouter()
   const [currentAccount, setCurrentAccount] = useState('')
@@ -30,6 +40,7 @@ export default function Track() {
   const [supplyChain, setSupplyChain] = useState<any>(null)
   const [med, setMed] = useState<{ [key: number]: Medicine }>({})
   const [medStage, setMedStage] = useState<{ [key: number]: string }>({})
+  const [timestamps, setTimestamps] = useState<{ [key: number]: ProductTimestamps }>({})
   const [id, setId] = useState('')
   const [rms, setRMS] = useState<{ [key: number]: Role }>({})
   const [man, setMAN] = useState<{ [key: number]: Role }>({})
@@ -54,17 +65,29 @@ export default function Track() {
       setSupplyChain(contract)
       setCurrentAccount(account)
 
-      const medCtr = await contract.methods.medicineCtr().call()
+      const medCtr = await contract.methods.productCtr().call()
       const medData: { [key: number]: Medicine } = {}
       const medStageData: { [key: number]: string } = {}
+      const timestampData: { [key: number]: ProductTimestamps } = {}
 
       for (let i = 0; i < medCtr; i++) {
-        medData[i + 1] = await contract.methods.MedicineStock(i + 1).call()
+        medData[i + 1] = await contract.methods.ProductStock(i + 1).call()
         medStageData[i + 1] = await contract.methods.showStage(i + 1).call()
+        // Fetch timestamps for each product
+        const ts = await contract.methods.getProductTimestamps(i + 1).call()
+        timestampData[i + 1] = {
+          ordered: ts.ordered,
+          rms: ts.rms,
+          manufacturing: ts.manufacturing,
+          distribution: ts.distribution,
+          retail: ts.retail,
+          sold_time: ts.sold_time
+        }
       }
 
       setMed(medData)
       setMedStage(medStageData)
+      setTimestamps(timestampData)
 
       const rmsCtr = await contract.methods.rmsCtr().call()
       const rmsData: { [key: number]: Role } = {}
@@ -120,14 +143,14 @@ export default function Track() {
 
   const trackMedicine = async (medicineId: number) => {
     try {
-      const ctr = await supplyChain.methods.medicineCtr().call()
+      const ctr = await supplyChain.methods.productCtr().call()
       if (!(medicineId > 0 && medicineId <= parseInt(ctr))) {
-        alert('Invalid Battery ID!!!')
+        alert('Invalid Product ID!!!')
         return
       }
       
       if (!med[medicineId]) {
-        alert('Battery data not found. Please wait for data to load.')
+        alert('Product data not found. Please wait for data to load.')
         return
       }
 
@@ -141,8 +164,8 @@ export default function Track() {
       else if (stage === 1) setTrackTillRMS(true)
       else setTrackTillOrdered(true)
     } catch (err) {
-      console.error('Error tracking medicine:', err)
-      alert('An error occurred while tracking the battery!')
+      console.error('Error tracking product:', err)
+      alert('An error occurred while tracking the product!')
     }
   }
 
@@ -150,7 +173,7 @@ export default function Track() {
     event.preventDefault()
     const medicineId = parseInt(id)
     if (isNaN(medicineId)) {
-      alert('Please enter a valid Battery ID!')
+      alert('Please enter a valid Product ID!')
       return
     }
     await trackMedicine(medicineId)
@@ -194,24 +217,34 @@ export default function Track() {
     ),
   }
 
+  // Helper function to format blockchain timestamp
+  const formatTimestamp = (timestamp: string) => {
+    const ts = parseInt(timestamp)
+    if (ts === 0) return 'Not yet'
+    const date = new Date(ts * 1000) // Convert from seconds to milliseconds
+    return date.toLocaleString()
+  }
+
   const TrackComponent = ({
     title,
     stages,
   }: {
     title: string
-    stages: Array<{ label: string; data?: Role; showArrow?: boolean; icon?: JSX.Element }>
+    stages: Array<{ label: string; data?: Role; showArrow?: boolean; icon?: JSX.Element; timestamp?: string }>
   }) => {
     const medicineId = parseInt(id)
+    const productTimestamps = timestamps[medicineId]
     const batteryData = {
       id: med[medicineId]?.id,
       name: med[medicineId]?.name,
       description: med[medicineId]?.description,
+      quantity: med[medicineId]?.quantity,
       currentStage: medStage[medicineId],
     }
 
     return (
       <div className="max-w-6xl mx-auto">
-        {/* Medicine Info Card */}
+        {/* Product Info Card */}
         <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-2xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
@@ -221,13 +254,13 @@ export default function Track() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-3xl font-bold mb-2">Battery Information</h3>
+                <h3 className="text-3xl font-bold mb-2">Product Information</h3>
                 <p className="text-purple-100 text-sm">Track ID: {med[medicineId]?.id}</p>
               </div>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <div className="text-sm text-purple-100 mb-1">Name</div>
               <div className="text-lg font-semibold">{med[medicineId]?.name}</div>
@@ -237,10 +270,52 @@ export default function Track() {
               <div className="text-lg font-semibold truncate">{med[medicineId]?.description}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+              <div className="text-sm text-purple-100 mb-1">Quantity</div>
+              <div className="text-lg font-semibold">{med[medicineId]?.quantity}</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <div className="text-sm text-purple-100 mb-1">Current Stage</div>
               <div className="text-lg font-semibold">{medStage[medicineId]}</div>
             </div>
           </div>
+          
+          {/* Timestamps Section */}
+          {productTimestamps && (
+            <div className="mt-6 pt-6 border-t border-white/20">
+              <h4 className="text-lg font-semibold mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Timeline Timestamps
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">Ordered</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.ordered)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">RMS</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.rms)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">Manufacturing</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.manufacturing)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">Distribution</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.distribution)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">Retail</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.retail)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                  <div className="text-purple-200 text-xs">Sold</div>
+                  <div className="font-medium">{formatTimestamp(productTimestamps.sold_time)}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Supply Chain Timeline */}

@@ -8,6 +8,7 @@ interface Medicine {
   id: string
   name: string
   description: string
+  quantity: string
   RMSid: string
   MANid: string
   DISid: string
@@ -40,12 +41,12 @@ export default function Supply() {
       setSupplyChain(contract)
       setCurrentAccount(account)
 
-      const medCtr = await contract.methods.medicineCtr().call()
+      const medCtr = await contract.methods.productCtr().call()
       const medData: { [key: number]: Medicine } = {}
       const medStageData: string[] = []
 
       for (let i = 0; i < medCtr; i++) {
-        medData[i] = await contract.methods.MedicineStock(i + 1).call()
+        medData[i] = await contract.methods.ProductStock(i + 1).call()
         medStageData[i] = await contract.methods.showStage(i + 1).call()
       }
 
