@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
     sources: './contracts',
     tests: './test',
     cache: './cache',
-    artifacts: './client/src/artifacts',
+    artifacts: '../client/src/artifacts',
   },
   networks: {
     hardhat: {

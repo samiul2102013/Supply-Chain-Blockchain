@@ -199,8 +199,8 @@ contract SupplyChain {
         require(_productID > 0 && _productID <= productCtr, "Invalid product ID");
         uint256 _id = findRET(msg.sender);
         require(_id > 0, "You are not a registered Retailer");
-        require(_id == ProductStock[_productID].RETid, "You are not the assigned Retailer for this product");
         require(ProductStock[_productID].stage == STAGE.Retail, "Product not in Retail stage");
+        require(_id == ProductStock[_productID].RETid, "You are not the assigned Retailer for this product");
         ProductStock[_productID].stage = STAGE.sold;
         ProductTimestamps[_productID].soldTimestamp = block.timestamp;
         emit StageUpdated(_productID, STAGE.sold, msg.sender, block.timestamp);
