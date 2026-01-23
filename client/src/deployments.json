@@ -1,0 +1,14 @@
+{
+  "networks": {
+    "1337": {
+      "SupplyChain": {
+        "address": "0xaFDa2C64aC8C0181b71e34317890bF19072A0F87"
+      }
+    },
+    "11155111": {
+      "SupplyChain": {
+        "address": "0xeE4360a736C124b42aD7927146EC398A4A193061"
+      }
+    }
+  }
+}
