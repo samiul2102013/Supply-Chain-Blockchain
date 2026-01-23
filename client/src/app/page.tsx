@@ -21,12 +21,36 @@ export default function Home() {
       hoverGradient: 'from-blue-600 to-cyan-600',
     },
     {
-      path: '/addmed',
-      title: 'Order Materials',
-      description: 'Create new medicine orders in the system',
+      path: '/vendors',
+      title: 'Vendor Management',
+      description: 'Manage suppliers with transparency and ratings',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      gradient: 'from-cyan-500 to-teal-500',
+      hoverGradient: 'from-cyan-600 to-teal-600',
+    },
+    {
+      path: '/materials',
+      title: 'Materials Tracking',
+      description: 'Track raw materials with full traceability',
       icon: (
         <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      ),
+      gradient: 'from-teal-500 to-green-500',
+      hoverGradient: 'from-teal-600 to-green-600',
+    },
+    {
+      path: '/addmed',
+      title: 'Order Products',
+      description: 'Create new product orders in the system',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
       gradient: 'from-green-500 to-emerald-500',
@@ -34,8 +58,8 @@ export default function Home() {
     },
     {
       path: '/track',
-      title: 'Track Materials',
-      description: 'Monitor medicine journey through the supply chain',
+      title: 'Track Products',
+      description: 'Monitor product journey through the supply chain',
       icon: (
         <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -46,12 +70,11 @@ export default function Home() {
     },
     {
       path: '/supply',
-      title: 'Supply Materials',
-      description: 'Manage supply chain flow and transitions',
+      title: 'Supply Chain',
+      description: 'Manage supply chain flow and stage transitions',
       icon: (
         <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
       gradient: 'from-orange-500 to-red-500',
@@ -122,7 +145,7 @@ export default function Home() {
         </div>
 
         {/* Main Menu Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-8">
           {menuItems.map((item) => (
             <button
               key={item.path}

@@ -20,6 +20,7 @@ contract SupplyChain {
     uint256 public manCtr = 0;
     uint256 public disCtr = 0;
     uint256 public retCtr = 0;
+    uint256 public materialCtr = 0;
 
     // Timestamp tracking for each stage
     struct ProductHistory {
@@ -35,7 +36,7 @@ contract SupplyChain {
         uint256 id;
         string name;
         string description;
-        uint256 quantity;           // NEW: Product quantity
+        uint256 quantity;
         uint256 RMSid;
         uint256 MANid;
         uint256 DISid;
@@ -44,12 +45,62 @@ contract SupplyChain {
     }
 
     mapping(uint256 => product) public ProductStock;
-    mapping(uint256 => ProductHistory) public ProductTimestamps;  // NEW: Timestamp tracking
+    mapping(uint256 => ProductHistory) public ProductTimestamps;
+
+    // ============ ENHANCED VENDOR/RMS MANAGEMENT ============
+    
+    // Raw Material structure for better tracking
+    struct RawMaterial {
+        uint256 id;
+        string name;
+        string category;           // e.g., "Chemical", "Metal", "Plastic"
+        uint256 quantity;
+        string unit;               // e.g., "kg", "liters", "units"
+        uint256 pricePerUnit;      // in wei
+        uint256 supplierId;        // RMS who supplies this
+        uint256 addedTimestamp;
+        bool isActive;
+    }
+    
+    mapping(uint256 => RawMaterial) public Materials;
+    
+    // Vendor/RMS Performance Tracking
+    struct VendorPerformance {
+        uint256 totalOrders;
+        uint256 completedOrders;
+        uint256 totalQuantitySupplied;
+        uint256 lastActivityTimestamp;
+        uint256 rating;             // 1-5 scale (stored as 10-50 for precision)
+        bool isVerified;
+    }
+    
+    mapping(uint256 => VendorPerformance) public VendorStats;
+    
+    // Material Transaction for full traceability
+    struct MaterialTransaction {
+        uint256 id;
+        uint256 materialId;
+        uint256 vendorId;
+        uint256 productId;          // 0 if not yet assigned to product
+        uint256 quantity;
+        uint256 timestamp;
+        string transactionType;     // "RECEIVED", "USED", "RETURNED"
+    }
+    
+    uint256 public transactionCtr = 0;
+    mapping(uint256 => MaterialTransaction) public MaterialTransactions;
+    
+    // Product to Materials mapping (which materials used in which product)
+    mapping(uint256 => uint256[]) public ProductMaterials;
 
     // Events for blockchain logging
     event ProductAdded(uint256 indexed productId, string name, uint256 quantity, uint256 timestamp);
     event StageUpdated(uint256 indexed productId, STAGE stage, address indexed actor, uint256 timestamp);
     event RoleAdded(string roleType, uint256 indexed roleId, address indexed addr, string name);
+    event MaterialAdded(uint256 indexed materialId, string name, uint256 supplierId, uint256 timestamp);
+    event MaterialTransactionRecorded(uint256 indexed txId, uint256 materialId, uint256 vendorId, string txType, uint256 timestamp);
+    event VendorVerified(uint256 indexed vendorId, uint256 timestamp);
+    event VendorRated(uint256 indexed vendorId, uint256 rating, uint256 timestamp);
 
     function showStage(uint256 _productID) public view returns (string memory) {
         require(productCtr > 0, "No products exist");
@@ -83,7 +134,16 @@ contract SupplyChain {
         );
     }
 
-    struct rawMaterialSupplier { address addr; uint256 id; string name; string place; }
+    // Enhanced RMS structure with more details
+    struct rawMaterialSupplier { 
+        address addr; 
+        uint256 id; 
+        string name; 
+        string place;
+        string contactInfo;         // Phone/Email
+        string materialTypes;       // Types of materials they supply
+        uint256 registeredAt;
+    }
     mapping(uint256 => rawMaterialSupplier) public RMS;
 
     struct manufacturer { address addr; uint256 id; string name; string place; }
@@ -95,10 +155,33 @@ contract SupplyChain {
     struct retailer { address addr; uint256 id; string name; string place; }
     mapping(uint256 => retailer) public RET;
 
-    function addRMS(address _address, string memory _name, string memory _place) public onlyByOwner() {
+    // ============ ENHANCED RMS FUNCTIONS ============
+    
+    function addRMS(
+        address _address, 
+        string memory _name, 
+        string memory _place,
+        string memory _contactInfo,
+        string memory _materialTypes
+    ) public onlyByOwner() {
         rmsCtr++;
-        RMS[rmsCtr] = rawMaterialSupplier(_address, rmsCtr, _name, _place);
+        RMS[rmsCtr] = rawMaterialSupplier(
+            _address, 
+            rmsCtr, 
+            _name, 
+            _place, 
+            _contactInfo, 
+            _materialTypes,
+            block.timestamp
+        );
+        // Initialize vendor performance
+        VendorStats[rmsCtr] = VendorPerformance(0, 0, 0, block.timestamp, 30, false);
         emit RoleAdded("RMS", rmsCtr, _address, _name);
+    }
+    
+    // Legacy function for backward compatibility
+    function addRMSLegacy(address _address, string memory _name, string memory _place) public onlyByOwner() {
+        addRMS(_address, _name, _place, "", "General");
     }
 
     function addManufacturer(address _address, string memory _name, string memory _place) public onlyByOwner() {
@@ -117,6 +200,141 @@ contract SupplyChain {
         retCtr++;
         RET[retCtr] = retailer(_address, retCtr, _name, _place);
         emit RoleAdded("Retailer", retCtr, _address, _name);
+    }
+    
+    // ============ MATERIAL MANAGEMENT FUNCTIONS ============
+    
+    function addMaterial(
+        string memory _name,
+        string memory _category,
+        uint256 _quantity,
+        string memory _unit,
+        uint256 _pricePerUnit,
+        uint256 _supplierId
+    ) public onlyByOwner() {
+        require(_supplierId > 0 && _supplierId <= rmsCtr, "Invalid supplier ID");
+        require(_quantity > 0, "Quantity must be greater than 0");
+        
+        materialCtr++;
+        Materials[materialCtr] = RawMaterial(
+            materialCtr,
+            _name,
+            _category,
+            _quantity,
+            _unit,
+            _pricePerUnit,
+            _supplierId,
+            block.timestamp,
+            true
+        );
+        
+        // Record transaction
+        transactionCtr++;
+        MaterialTransactions[transactionCtr] = MaterialTransaction(
+            transactionCtr,
+            materialCtr,
+            _supplierId,
+            0,
+            _quantity,
+            block.timestamp,
+            "RECEIVED"
+        );
+        
+        // Update vendor stats
+        VendorStats[_supplierId].totalOrders++;
+        VendorStats[_supplierId].totalQuantitySupplied += _quantity;
+        VendorStats[_supplierId].lastActivityTimestamp = block.timestamp;
+        
+        emit MaterialAdded(materialCtr, _name, _supplierId, block.timestamp);
+        emit MaterialTransactionRecorded(transactionCtr, materialCtr, _supplierId, "RECEIVED", block.timestamp);
+    }
+    
+    function useMaterialForProduct(uint256 _materialId, uint256 _productId, uint256 _quantity) public {
+        require(_materialId > 0 && _materialId <= materialCtr, "Invalid material ID");
+        require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
+        require(Materials[_materialId].quantity >= _quantity, "Insufficient material quantity");
+        require(Materials[_materialId].isActive, "Material is not active");
+        
+        // Check if caller is a registered RMS
+        uint256 rmsId = findRMS(msg.sender);
+        require(rmsId > 0, "Only registered RMS can use materials");
+        require(rmsId == Materials[_materialId].supplierId, "You can only use materials you supplied");
+        
+        Materials[_materialId].quantity -= _quantity;
+        
+        // Record transaction
+        transactionCtr++;
+        MaterialTransactions[transactionCtr] = MaterialTransaction(
+            transactionCtr,
+            _materialId,
+            rmsId,
+            _productId,
+            _quantity,
+            block.timestamp,
+            "USED"
+        );
+        
+        // Link material to product
+        ProductMaterials[_productId].push(_materialId);
+        
+        // Update vendor stats
+        VendorStats[rmsId].completedOrders++;
+        VendorStats[rmsId].lastActivityTimestamp = block.timestamp;
+        
+        emit MaterialTransactionRecorded(transactionCtr, _materialId, rmsId, "USED", block.timestamp);
+    }
+    
+    function getMaterialsForProduct(uint256 _productId) public view returns (uint256[] memory) {
+        require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
+        return ProductMaterials[_productId];
+    }
+    
+    // ============ VENDOR TRANSPARENCY FUNCTIONS ============
+    
+    function verifyVendor(uint256 _vendorId) public onlyByOwner() {
+        require(_vendorId > 0 && _vendorId <= rmsCtr, "Invalid vendor ID");
+        VendorStats[_vendorId].isVerified = true;
+        emit VendorVerified(_vendorId, block.timestamp);
+    }
+    
+    function rateVendor(uint256 _vendorId, uint256 _rating) public onlyByOwner() {
+        require(_vendorId > 0 && _vendorId <= rmsCtr, "Invalid vendor ID");
+        require(_rating >= 10 && _rating <= 50, "Rating must be between 10 and 50 (1.0 to 5.0)");
+        VendorStats[_vendorId].rating = _rating;
+        emit VendorRated(_vendorId, _rating, block.timestamp);
+    }
+    
+    function getVendorDetails(uint256 _vendorId) public view returns (
+        string memory name,
+        string memory place,
+        string memory contactInfo,
+        string memory materialTypes,
+        uint256 registeredAt,
+        uint256 totalOrders,
+        uint256 completedOrders,
+        uint256 totalQuantitySupplied,
+        uint256 rating,
+        bool isVerified
+    ) {
+        require(_vendorId > 0 && _vendorId <= rmsCtr, "Invalid vendor ID");
+        rawMaterialSupplier memory vendor = RMS[_vendorId];
+        VendorPerformance memory perf = VendorStats[_vendorId];
+        return (
+            vendor.name,
+            vendor.place,
+            vendor.contactInfo,
+            vendor.materialTypes,
+            vendor.registeredAt,
+            perf.totalOrders,
+            perf.completedOrders,
+            perf.totalQuantitySupplied,
+            perf.rating,
+            perf.isVerified
+        );
+    }
+    
+    function getMaterialTransactionCount() public view returns (uint256) {
+        return transactionCtr;
     }
 
     function RMSsupply(uint256 _productID) public {

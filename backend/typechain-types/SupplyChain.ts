@@ -30,31 +30,52 @@ export interface SupplyChainInterface extends Interface {
       | "Distribute"
       | "MAN"
       | "Manufacturing"
+      | "MaterialTransactions"
+      | "Materials"
       | "Owner"
+      | "ProductMaterials"
       | "ProductStock"
       | "ProductTimestamps"
       | "RET"
       | "RMS"
       | "RMSsupply"
       | "Retail"
+      | "VendorStats"
       | "addDistributor"
       | "addManufacturer"
+      | "addMaterial"
       | "addMedicine"
       | "addProduct"
       | "addRMS"
+      | "addRMSLegacy"
       | "addRetailer"
       | "disCtr"
+      | "getMaterialTransactionCount"
+      | "getMaterialsForProduct"
       | "getProductTimestamps"
+      | "getVendorDetails"
       | "manCtr"
+      | "materialCtr"
       | "productCtr"
+      | "rateVendor"
       | "retCtr"
       | "rmsCtr"
       | "showStage"
       | "sold"
+      | "transactionCtr"
+      | "useMaterialForProduct"
+      | "verifyVendor"
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "ProductAdded" | "RoleAdded" | "StageUpdated"
+    nameOrSignatureOrTopic:
+      | "MaterialAdded"
+      | "MaterialTransactionRecorded"
+      | "ProductAdded"
+      | "RoleAdded"
+      | "StageUpdated"
+      | "VendorRated"
+      | "VendorVerified"
   ): EventFragment;
 
   encodeFunctionData(functionFragment: "DIS", values: [BigNumberish]): string;
@@ -67,7 +88,19 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "Manufacturing",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "MaterialTransactions",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "Materials",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "Owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "ProductMaterials",
+    values: [BigNumberish, BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "ProductStock",
     values: [BigNumberish]
@@ -87,12 +120,20 @@ export interface SupplyChainInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "VendorStats",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "addDistributor",
     values: [AddressLike, string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "addManufacturer",
     values: [AddressLike, string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addMaterial",
+    values: [string, string, BigNumberish, string, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "addMedicine",
@@ -104,6 +145,10 @@ export interface SupplyChainInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "addRMS",
+    values: [AddressLike, string, string, string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addRMSLegacy",
     values: [AddressLike, string, string]
   ): string;
   encodeFunctionData(
@@ -112,13 +157,33 @@ export interface SupplyChainInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "disCtr", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "getMaterialTransactionCount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMaterialsForProduct",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getProductTimestamps",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getVendorDetails",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "manCtr", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "materialCtr",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "productCtr",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rateVendor",
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "retCtr", values?: undefined): string;
   encodeFunctionData(functionFragment: "rmsCtr", values?: undefined): string;
@@ -127,6 +192,18 @@ export interface SupplyChainInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "sold", values: [BigNumberish]): string;
+  encodeFunctionData(
+    functionFragment: "transactionCtr",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "useMaterialForProduct",
+    values: [BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "verifyVendor",
+    values: [BigNumberish]
+  ): string;
 
   decodeFunctionResult(functionFragment: "DIS", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "Distribute", data: BytesLike): Result;
@@ -135,7 +212,16 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "Manufacturing",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "MaterialTransactions",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "Materials", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "Owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "ProductMaterials",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "ProductStock",
     data: BytesLike
@@ -149,11 +235,19 @@ export interface SupplyChainInterface extends Interface {
   decodeFunctionResult(functionFragment: "RMSsupply", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "Retail", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "VendorStats",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "addDistributor",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "addManufacturer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addMaterial",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -163,20 +257,106 @@ export interface SupplyChainInterface extends Interface {
   decodeFunctionResult(functionFragment: "addProduct", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "addRMS", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "addRMSLegacy",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "addRetailer",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "disCtr", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "getMaterialTransactionCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getMaterialsForProduct",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getProductTimestamps",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getVendorDetails",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "manCtr", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "materialCtr",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "productCtr", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "rateVendor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "retCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rmsCtr", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "showStage", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sold", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "transactionCtr",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "useMaterialForProduct",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "verifyVendor",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace MaterialAddedEvent {
+  export type InputTuple = [
+    materialId: BigNumberish,
+    name: string,
+    supplierId: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    materialId: bigint,
+    name: string,
+    supplierId: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    materialId: bigint;
+    name: string;
+    supplierId: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MaterialTransactionRecordedEvent {
+  export type InputTuple = [
+    txId: BigNumberish,
+    materialId: BigNumberish,
+    vendorId: BigNumberish,
+    txType: string,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    txId: bigint,
+    materialId: bigint,
+    vendorId: bigint,
+    txType: string,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    txId: bigint;
+    materialId: bigint;
+    vendorId: bigint;
+    txType: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace ProductAddedEvent {
@@ -246,6 +426,41 @@ export namespace StageUpdatedEvent {
     productId: bigint;
     stage: bigint;
     actor: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VendorRatedEvent {
+  export type InputTuple = [
+    vendorId: BigNumberish,
+    rating: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    vendorId: bigint,
+    rating: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    vendorId: bigint;
+    rating: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VendorVerifiedEvent {
+  export type InputTuple = [vendorId: BigNumberish, timestamp: BigNumberish];
+  export type OutputTuple = [vendorId: bigint, timestamp: bigint];
+  export interface OutputObject {
+    vendorId: bigint;
     timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -335,7 +550,57 @@ export interface SupplyChain extends BaseContract {
     "nonpayable"
   >;
 
+  MaterialTransactions: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, string] & {
+        id: bigint;
+        materialId: bigint;
+        vendorId: bigint;
+        productId: bigint;
+        quantity: bigint;
+        timestamp: bigint;
+        transactionType: string;
+      }
+    ],
+    "view"
+  >;
+
+  Materials: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        boolean
+      ] & {
+        id: bigint;
+        name: string;
+        category: string;
+        quantity: bigint;
+        unit: string;
+        pricePerUnit: bigint;
+        supplierId: bigint;
+        addedTimestamp: bigint;
+        isActive: boolean;
+      }
+    ],
+    "view"
+  >;
+
   Owner: TypedContractMethod<[], [string], "view">;
+
+  ProductMaterials: TypedContractMethod<
+    [arg0: BigNumberish, arg1: BigNumberish],
+    [bigint],
+    "view"
+  >;
 
   ProductStock: TypedContractMethod<
     [arg0: BigNumberish],
@@ -396,11 +661,14 @@ export interface SupplyChain extends BaseContract {
   RMS: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, string, string] & {
+      [string, bigint, string, string, string, string, bigint] & {
         addr: string;
         id: bigint;
         name: string;
         place: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
       }
     ],
     "view"
@@ -414,6 +682,21 @@ export interface SupplyChain extends BaseContract {
 
   Retail: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
 
+  VendorStats: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, boolean] & {
+        totalOrders: bigint;
+        completedOrders: bigint;
+        totalQuantitySupplied: bigint;
+        lastActivityTimestamp: bigint;
+        rating: bigint;
+        isVerified: boolean;
+      }
+    ],
+    "view"
+  >;
+
   addDistributor: TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
     [void],
@@ -422,6 +705,19 @@ export interface SupplyChain extends BaseContract {
 
   addManufacturer: TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
+    [void],
+    "nonpayable"
+  >;
+
+  addMaterial: TypedContractMethod<
+    [
+      _name: string,
+      _category: string,
+      _quantity: BigNumberish,
+      _unit: string,
+      _pricePerUnit: BigNumberish,
+      _supplierId: BigNumberish
+    ],
     [void],
     "nonpayable"
   >;
@@ -439,6 +735,18 @@ export interface SupplyChain extends BaseContract {
   >;
 
   addRMS: TypedContractMethod<
+    [
+      _address: AddressLike,
+      _name: string,
+      _place: string,
+      _contactInfo: string,
+      _materialTypes: string
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  addRMSLegacy: TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
     [void],
     "nonpayable"
@@ -451,6 +759,14 @@ export interface SupplyChain extends BaseContract {
   >;
 
   disCtr: TypedContractMethod<[], [bigint], "view">;
+
+  getMaterialTransactionCount: TypedContractMethod<[], [bigint], "view">;
+
+  getMaterialsForProduct: TypedContractMethod<
+    [_productId: BigNumberish],
+    [bigint[]],
+    "view"
+  >;
 
   getProductTimestamps: TypedContractMethod<
     [_productID: BigNumberish],
@@ -467,9 +783,47 @@ export interface SupplyChain extends BaseContract {
     "view"
   >;
 
+  getVendorDetails: TypedContractMethod<
+    [_vendorId: BigNumberish],
+    [
+      [
+        string,
+        string,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        boolean
+      ] & {
+        name: string;
+        place: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
+        totalOrders: bigint;
+        completedOrders: bigint;
+        totalQuantitySupplied: bigint;
+        rating: bigint;
+        isVerified: boolean;
+      }
+    ],
+    "view"
+  >;
+
   manCtr: TypedContractMethod<[], [bigint], "view">;
 
+  materialCtr: TypedContractMethod<[], [bigint], "view">;
+
   productCtr: TypedContractMethod<[], [bigint], "view">;
+
+  rateVendor: TypedContractMethod<
+    [_vendorId: BigNumberish, _rating: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   retCtr: TypedContractMethod<[], [bigint], "view">;
 
@@ -478,6 +832,24 @@ export interface SupplyChain extends BaseContract {
   showStage: TypedContractMethod<[_productID: BigNumberish], [string], "view">;
 
   sold: TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
+
+  transactionCtr: TypedContractMethod<[], [bigint], "view">;
+
+  useMaterialForProduct: TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _productId: BigNumberish,
+      _quantity: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  verifyVendor: TypedContractMethod<
+    [_vendorId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -518,8 +890,61 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "Manufacturing"
   ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "MaterialTransactions"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, string] & {
+        id: bigint;
+        materialId: bigint;
+        vendorId: bigint;
+        productId: bigint;
+        quantity: bigint;
+        timestamp: bigint;
+        transactionType: string;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "Materials"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [
+        bigint,
+        string,
+        string,
+        bigint,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        boolean
+      ] & {
+        id: bigint;
+        name: string;
+        category: string;
+        quantity: bigint;
+        unit: string;
+        pricePerUnit: bigint;
+        supplierId: bigint;
+        addedTimestamp: bigint;
+        isActive: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "Owner"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "ProductMaterials"
+  ): TypedContractMethod<
+    [arg0: BigNumberish, arg1: BigNumberish],
+    [bigint],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "ProductStock"
   ): TypedContractMethod<
@@ -584,11 +1009,14 @@ export interface SupplyChain extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, bigint, string, string] & {
+      [string, bigint, string, string, string, string, bigint] & {
         addr: string;
         id: bigint;
         name: string;
         place: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
       }
     ],
     "view"
@@ -600,6 +1028,22 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "Retail"
   ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "VendorStats"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, bigint, bigint, boolean] & {
+        totalOrders: bigint;
+        completedOrders: bigint;
+        totalQuantitySupplied: bigint;
+        lastActivityTimestamp: bigint;
+        rating: bigint;
+        isVerified: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "addDistributor"
   ): TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
@@ -610,6 +1054,20 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "addManufacturer"
   ): TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "addMaterial"
+  ): TypedContractMethod<
+    [
+      _name: string,
+      _category: string,
+      _quantity: BigNumberish,
+      _unit: string,
+      _pricePerUnit: BigNumberish,
+      _supplierId: BigNumberish
+    ],
     [void],
     "nonpayable"
   >;
@@ -630,6 +1088,19 @@ export interface SupplyChain extends BaseContract {
   getFunction(
     nameOrSignature: "addRMS"
   ): TypedContractMethod<
+    [
+      _address: AddressLike,
+      _name: string,
+      _place: string,
+      _contactInfo: string,
+      _materialTypes: string
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "addRMSLegacy"
+  ): TypedContractMethod<
     [_address: AddressLike, _name: string, _place: string],
     [void],
     "nonpayable"
@@ -644,6 +1115,12 @@ export interface SupplyChain extends BaseContract {
   getFunction(
     nameOrSignature: "disCtr"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getMaterialTransactionCount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getMaterialsForProduct"
+  ): TypedContractMethod<[_productId: BigNumberish], [bigint[]], "view">;
   getFunction(
     nameOrSignature: "getProductTimestamps"
   ): TypedContractMethod<
@@ -661,11 +1138,52 @@ export interface SupplyChain extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getVendorDetails"
+  ): TypedContractMethod<
+    [_vendorId: BigNumberish],
+    [
+      [
+        string,
+        string,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        boolean
+      ] & {
+        name: string;
+        place: string;
+        contactInfo: string;
+        materialTypes: string;
+        registeredAt: bigint;
+        totalOrders: bigint;
+        completedOrders: bigint;
+        totalQuantitySupplied: bigint;
+        rating: bigint;
+        isVerified: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "manCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "materialCtr"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "productCtr"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "rateVendor"
+  ): TypedContractMethod<
+    [_vendorId: BigNumberish, _rating: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "retCtr"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -678,7 +1196,38 @@ export interface SupplyChain extends BaseContract {
   getFunction(
     nameOrSignature: "sold"
   ): TypedContractMethod<[_productID: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "transactionCtr"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "useMaterialForProduct"
+  ): TypedContractMethod<
+    [
+      _materialId: BigNumberish,
+      _productId: BigNumberish,
+      _quantity: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "verifyVendor"
+  ): TypedContractMethod<[_vendorId: BigNumberish], [void], "nonpayable">;
 
+  getEvent(
+    key: "MaterialAdded"
+  ): TypedContractEvent<
+    MaterialAddedEvent.InputTuple,
+    MaterialAddedEvent.OutputTuple,
+    MaterialAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MaterialTransactionRecorded"
+  ): TypedContractEvent<
+    MaterialTransactionRecordedEvent.InputTuple,
+    MaterialTransactionRecordedEvent.OutputTuple,
+    MaterialTransactionRecordedEvent.OutputObject
+  >;
   getEvent(
     key: "ProductAdded"
   ): TypedContractEvent<
@@ -700,8 +1249,44 @@ export interface SupplyChain extends BaseContract {
     StageUpdatedEvent.OutputTuple,
     StageUpdatedEvent.OutputObject
   >;
+  getEvent(
+    key: "VendorRated"
+  ): TypedContractEvent<
+    VendorRatedEvent.InputTuple,
+    VendorRatedEvent.OutputTuple,
+    VendorRatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "VendorVerified"
+  ): TypedContractEvent<
+    VendorVerifiedEvent.InputTuple,
+    VendorVerifiedEvent.OutputTuple,
+    VendorVerifiedEvent.OutputObject
+  >;
 
   filters: {
+    "MaterialAdded(uint256,string,uint256,uint256)": TypedContractEvent<
+      MaterialAddedEvent.InputTuple,
+      MaterialAddedEvent.OutputTuple,
+      MaterialAddedEvent.OutputObject
+    >;
+    MaterialAdded: TypedContractEvent<
+      MaterialAddedEvent.InputTuple,
+      MaterialAddedEvent.OutputTuple,
+      MaterialAddedEvent.OutputObject
+    >;
+
+    "MaterialTransactionRecorded(uint256,uint256,uint256,string,uint256)": TypedContractEvent<
+      MaterialTransactionRecordedEvent.InputTuple,
+      MaterialTransactionRecordedEvent.OutputTuple,
+      MaterialTransactionRecordedEvent.OutputObject
+    >;
+    MaterialTransactionRecorded: TypedContractEvent<
+      MaterialTransactionRecordedEvent.InputTuple,
+      MaterialTransactionRecordedEvent.OutputTuple,
+      MaterialTransactionRecordedEvent.OutputObject
+    >;
+
     "ProductAdded(uint256,string,uint256,uint256)": TypedContractEvent<
       ProductAddedEvent.InputTuple,
       ProductAddedEvent.OutputTuple,
@@ -733,6 +1318,28 @@ export interface SupplyChain extends BaseContract {
       StageUpdatedEvent.InputTuple,
       StageUpdatedEvent.OutputTuple,
       StageUpdatedEvent.OutputObject
+    >;
+
+    "VendorRated(uint256,uint256,uint256)": TypedContractEvent<
+      VendorRatedEvent.InputTuple,
+      VendorRatedEvent.OutputTuple,
+      VendorRatedEvent.OutputObject
+    >;
+    VendorRated: TypedContractEvent<
+      VendorRatedEvent.InputTuple,
+      VendorRatedEvent.OutputTuple,
+      VendorRatedEvent.OutputObject
+    >;
+
+    "VendorVerified(uint256,uint256)": TypedContractEvent<
+      VendorVerifiedEvent.InputTuple,
+      VendorVerifiedEvent.OutputTuple,
+      VendorVerifiedEvent.OutputObject
+    >;
+    VendorVerified: TypedContractEvent<
+      VendorVerifiedEvent.InputTuple,
+      VendorVerifiedEvent.OutputTuple,
+      VendorVerifiedEvent.OutputObject
     >;
   };
 }

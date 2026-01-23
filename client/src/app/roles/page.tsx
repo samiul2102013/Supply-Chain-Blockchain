@@ -108,7 +108,8 @@ export default function AssignRoles() {
       let receipt
       switch (type) {
         case 'rms':
-          receipt = await supplyChain.methods.addRMS(address, name, place).send({ from: currentAccount })
+          // Use enhanced addRMS with default contact and material types
+          receipt = await supplyChain.methods.addRMS(address, name, place, '', 'General').send({ from: currentAccount })
           break
         case 'man':
           receipt = await supplyChain.methods.addManufacturer(address, name, place).send({ from: currentAccount })
