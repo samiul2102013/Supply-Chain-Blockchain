@@ -7,8 +7,6 @@ interface TeamMember {
   name: string
   id: string
   image: string
-  role: string
-  skills: string[]
 }
 
 const teamMembers: TeamMember[] = [
@@ -16,29 +14,21 @@ const teamMembers: TeamMember[] = [
     name: 'Rahul Ahmed',
     id: 'IP-2105018',
     image: '/team/Rahul.jpeg',
-    role: 'Project Lead',
-    skills: ['Smart Contracts', 'Solidity', 'Architecture']
   },
   {
     name: 'Ahmed Fahim',
     id: 'IP-2105065',
     image: '/team/Fahim.jpeg',
-    role: 'Frontend Developer',
-    skills: ['React', 'Next.js', 'UI/UX']
-  },
-  {
-    name: 'Rifat Ahmed',
-    id: 'IP-2105089',
-    image: '/team/rifat.PNG',
-    role: 'Blockchain Developer',
-    skills: ['Web3.js', 'Ethereum', 'Testing']
   },
   {
     name: 'Md. Shamsuddin Iqbal',
     id: 'IP-2105070',
     image: '/team/samsu.jpeg',
-    role: 'Full Stack Developer',
-    skills: ['Node.js', 'TypeScript', 'APIs']
+  },
+  {
+    name: 'Rifat Ahmed',
+    id: 'IP-2105089',
+    image: '/team/rifat.PNG',
   }
 ]
 
@@ -101,7 +91,7 @@ export default function TeamPage() {
                 {/* Gradient orb */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
-                <div className="relative flex items-start gap-6">
+                <div className="relative flex items-center gap-6">
                   {/* Image */}
                   <div className="relative shrink-0">
                     <div className="w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-white/10 group-hover:ring-white/20 transition-all">
@@ -120,27 +110,12 @@ export default function TeamPage() {
                   
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-semibold mb-1 group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-400 transition-colors">
                       {member.name}
                     </h3>
-                    <p className="text-purple-400 text-sm font-medium mb-1">
-                      {member.role}
-                    </p>
-                    <p className="text-gray-500 text-xs font-mono mb-4">
+                    <p className="text-gray-500 text-sm font-mono">
                       {member.id}
                     </p>
-                    
-                    {/* Skills */}
-                    <div className="flex flex-wrap gap-2">
-                      {member.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
