@@ -191,6 +191,7 @@ export interface SupplyChainInterface extends Interface {
       | "getProductMaterialsCount"
       | "getProductTimeline"
       | "getVendor"
+      | "isOwner"
       | "manufacturerCtr"
       | "manufacturerSelectMaterial"
       | "manufacturers"
@@ -310,6 +311,7 @@ export interface SupplyChainInterface extends Interface {
     functionFragment: "getVendor",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "isOwner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "manufacturerCtr",
     values?: undefined
@@ -469,6 +471,7 @@ export interface SupplyChainInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getVendor", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "isOwner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "manufacturerCtr",
     data: BytesLike
@@ -909,6 +912,8 @@ export interface SupplyChain extends BaseContract {
     "view"
   >;
 
+  isOwner: TypedContractMethod<[], [boolean], "view">;
+
   manufacturerCtr: TypedContractMethod<[], [bigint], "view">;
 
   manufacturerSelectMaterial: TypedContractMethod<
@@ -1281,6 +1286,9 @@ export interface SupplyChain extends BaseContract {
     [SupplyChain.VendorStructOutput],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "isOwner"
+  ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "manufacturerCtr"
   ): TypedContractMethod<[], [bigint], "view">;

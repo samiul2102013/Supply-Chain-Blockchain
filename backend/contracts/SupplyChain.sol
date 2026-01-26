@@ -13,6 +13,11 @@ contract SupplyChain {
         _;
     }
 
+    // Check if sender is owner (owner can act as any role)
+    function isOwner() public view returns (bool) {
+        return msg.sender == Owner;
+    }
+
     // ============ ENUMS ============
     enum STAGE { 
         Init,               // Product created, waiting for materials
@@ -421,13 +426,16 @@ contract SupplyChain {
     }
     
     // Manufacturer selects materials for a product and starts manufacturing
+    // ANY registered manufacturer (or owner) can contribute to ANY product
     function manufacturerSelectMaterial(
         uint256 _productId,
         uint256 _materialId,
         uint256 _quantity
     ) public {
         uint256 mId = findManufacturer(msg.sender);
-        require(mId > 0, "You are not a registered manufacturer");
+        // Allow owner to act as manufacturer
+        bool isOwnerActor = msg.sender == Owner;
+        require(mId > 0 || isOwnerActor, "You are not a registered manufacturer");
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         require(_materialId > 0 && _materialId <= materialCtr, "Invalid material ID");
         require(products[_productId].stage == STAGE.Init || products[_productId].stage == STAGE.MaterialsAssigned, 
@@ -435,11 +443,14 @@ contract SupplyChain {
         require(materials[_materialId].availableQuantity >= _quantity, "Insufficient material quantity");
         require(_quantity > 0, "Quantity must be > 0");
         
-        // If first material assignment, set manufacturer
-        if (products[_productId].manufacturerId == 0) {
+        // If owner, use ID 1 if exists, else 0
+        if (isOwnerActor && mId == 0) {
+            mId = manufacturerCtr > 0 ? 1 : 0;
+        }
+        
+        // Set or update manufacturer (any manufacturer can contribute)
+        if (products[_productId].manufacturerId == 0 && mId > 0) {
             products[_productId].manufacturerId = mId;
-        } else {
-            require(products[_productId].manufacturerId == mId, "Another manufacturer already assigned");
         }
         
         // Deduct material quantity
@@ -460,13 +471,19 @@ contract SupplyChain {
     }
     
     // Manufacturer confirms and starts manufacturing after selecting materials
+    // ANY manufacturer (or owner) can confirm for any product
     function confirmAndStartManufacturing(uint256 _productId) public {
         uint256 mId = findManufacturer(msg.sender);
-        require(mId > 0, "You are not a registered manufacturer");
+        bool isOwnerActor = msg.sender == Owner;
+        require(mId > 0 || isOwnerActor, "You are not a registered manufacturer");
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         require(products[_productId].stage == STAGE.MaterialsAssigned, "Materials not yet assigned");
-        require(products[_productId].manufacturerId == mId, "You are not assigned to this product");
         require(productMaterials[_productId].length > 0, "No materials assigned");
+        
+        // Update manufacturer if not set
+        if (products[_productId].manufacturerId == 0 && mId > 0) {
+            products[_productId].manufacturerId = mId;
+        }
         
         products[_productId].stage = STAGE.Manufacturing;
         productTimelines[_productId].manufacturingStartedAt = block.timestamp;
@@ -515,27 +532,37 @@ contract SupplyChain {
 
     // ============ SUPPLY CHAIN STAGE FUNCTIONS ============
     
+    // ANY manufacturer (or owner) can start manufacturing
     function startManufacturing(uint256 _productId) public {
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         uint256 mId = findManufacturer(msg.sender);
-        require(mId > 0, "You are not a registered manufacturer");
+        bool isOwnerActor = msg.sender == Owner;
+        require(mId > 0 || isOwnerActor, "You are not a registered manufacturer");
         require(products[_productId].stage == STAGE.MaterialsAssigned, "Materials not yet assigned");
         require(productMaterials[_productId].length > 0, "No materials assigned to this product");
         
-        products[_productId].manufacturerId = mId;
+        if (mId > 0) {
+            products[_productId].manufacturerId = mId;
+        }
         products[_productId].stage = STAGE.Manufacturing;
         productTimelines[_productId].manufacturingStartedAt = block.timestamp;
         
         emit StageUpdated(_productId, STAGE.Manufacturing, msg.sender, block.timestamp);
     }
     
+    // ANY distributor (or owner) can start distribution
     function startDistribution(uint256 _productId) public {
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         uint256 dId = findDistributor(msg.sender);
-        require(dId > 0, "You are not a registered distributor");
+        bool isOwnerActor = msg.sender == Owner;
+        require(dId > 0 || isOwnerActor, "You are not a registered distributor");
         require(products[_productId].stage == STAGE.Manufacturing, "Product not in manufacturing stage");
         
-        products[_productId].distributorId = dId;
+        if (dId > 0) {
+            products[_productId].distributorId = dId;
+        } else if (distributorCtr > 0) {
+            products[_productId].distributorId = 1;
+        }
         products[_productId].stage = STAGE.Distribution;
         productTimelines[_productId].manufacturingCompletedAt = block.timestamp;
         productTimelines[_productId].distributionStartedAt = block.timestamp;
@@ -543,25 +570,33 @@ contract SupplyChain {
         emit StageUpdated(_productId, STAGE.Distribution, msg.sender, block.timestamp);
     }
     
+    // ANY retailer (or owner) can receive at retail
     function receiveAtRetail(uint256 _productId) public {
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         uint256 rId = findRetailer(msg.sender);
-        require(rId > 0, "You are not a registered retailer");
+        bool isOwnerActor = msg.sender == Owner;
+        require(rId > 0 || isOwnerActor, "You are not a registered retailer");
         require(products[_productId].stage == STAGE.Distribution, "Product not in distribution stage");
         
-        products[_productId].retailerId = rId;
+        if (rId > 0) {
+            products[_productId].retailerId = rId;
+        } else if (retailerCtr > 0) {
+            products[_productId].retailerId = 1;
+        }
         products[_productId].stage = STAGE.Retail;
         productTimelines[_productId].retailReceivedAt = block.timestamp;
         
         emit StageUpdated(_productId, STAGE.Retail, msg.sender, block.timestamp);
     }
     
+    // ANY retailer (or owner) can mark as sold (must be at this retailer or owner)
     function markAsSold(uint256 _productId) public {
         require(_productId > 0 && _productId <= productCtr, "Invalid product ID");
         uint256 rId = findRetailer(msg.sender);
-        require(rId > 0, "You are not a registered retailer");
+        bool isOwnerActor = msg.sender == Owner;
+        require(rId > 0 || isOwnerActor, "You are not a registered retailer");
         require(products[_productId].stage == STAGE.Retail, "Product not at retail stage");
-        require(products[_productId].retailerId == rId, "You are not the assigned retailer");
+        // Allow any retailer or owner to mark as sold
         
         products[_productId].stage = STAGE.Sold;
         productTimelines[_productId].soldAt = block.timestamp;
