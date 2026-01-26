@@ -621,7 +621,7 @@ export default function SupplyChainPage() {
                         ⚠️ This product is at <strong>{getStageText(products.find(p => p.id === selectedDistProduct)?.stage || '0')}</strong> stage. 
                         It needs to be at <strong>Manufacturing</strong> stage before distribution.
                         {products.find(p => p.id === selectedDistProduct)?.stage === '1' && (
-                          <span className="block mt-1">→ Manufacturer needs to click "Start Manufacturing" first.</span>
+                          <span className="block mt-1">→ Manufacturer needs to click &quot;Start Manufacturing&quot; first.</span>
                         )}
                       </p>
                     </div>

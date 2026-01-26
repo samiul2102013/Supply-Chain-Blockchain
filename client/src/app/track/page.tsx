@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { loadWeb3, getContract } from '@/lib/web3'
 
@@ -386,11 +387,13 @@ export default function TrackPage() {
             <div className="bg-gray-800 rounded-lg p-6 text-center">
               <h3 className="text-xl font-bold mb-4">📱 Share This Product</h3>
               <div className="inline-block bg-white p-4 rounded-lg">
-                <img
+                <Image
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                     typeof window !== 'undefined' ? `${window.location.origin}/track?id=${product.id}` : ''
                   )}`}
                   alt="QR Code"
+                  width={144}
+                  height={144}
                   className="w-36 h-36"
                 />
               </div>
